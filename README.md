@@ -1,0 +1,109 @@
+# galaxyrio · 游乐场
+
+独立的 Astro 静态网页游戏项目。主页面采用主机游戏库布局，第一款游戏是 **Chroma Dash**。
+
+## 本地运行
+
+需要 Node.js 22.12 或更新版本；发布构建通过 .node-version 固定为本机已验证的 26.5.1。
+
+```powershell
+npm.cmd install
+npm.cmd run dev
+```
+
+本地地址：`http://127.0.0.1:4322/`
+
+- 游戏库：`/`
+- Chroma Dash：`/chroma/`
+- 指定玩法：`/chroma/?mode=accuracy`、`speed`、`blind`
+
+Astro 7 开发服务在后台运行，可以用 `npx.cmd astro dev status` 查看，`npx.cmd astro dev stop` 停止。
+
+## 检查与构建
+
+```powershell
+npm.cmd test
+npm.cmd run build
+```
+
+静态产物输出到 `dist/`。游戏本身不依赖服务器、数据库或账号。
+
+## 玩法
+
+每局 10 关。准度挑战每关 30 秒，到时自动提交当前有效颜色；查看答案时暂停，点击下一关重新计时。最终成绩为十关平均准确率，保留一位小数，越高越好。
+
+盲猜模式沿用准度挑战的计时和评分规则。调色过程中隐藏你的颜色，提交或倒计时结束后揭晓；下一关重新遮住颜色。
+
+速度挑战每关不限时，共 10 关。准确率严格大于 90% 立即过关；90% 及以下加罚 1 秒，保留当前目标与调色继续尝试。第十关通过后结束，总用时 = 实际经过时间 + 累计罚时，越低越好。
+
+准确率使用 CIEDE2000 感知色差映射到 0–100%，仅完全相同的 RGB 获得 100%。提示框或切到其他标签页不会暂停正在进行的挑战；速度结果包含累计罚时，结束后冻结计时。
+
+支持触摸、鼠标、键盘、RGB 数值和 HEX 输入。本机设置与最近 30 局记录保存在 localStorage；存储不可用时游戏仍可运行。新版记录使用独立的 v2 存储键，旧记录保留在本机存储中，不参与新挑战的最佳成绩比较；首页仅展示当前游戏提供的最佳成绩。
+
+## 项目结构
+
+- `src/data/games.ts`：游戏注册表
+- `src/games/chroma/info.ts`：Chroma Dash 自己提供的名称、素材、简介、标签、玩法说明和成绩读取
+- `src/lib/game-library.ts`：通用游戏信息类型与选择逻辑
+- `src/pages/index.astro`：游戏库
+- `src/pages/chroma/index.astro`：Chroma Dash 游戏界面
+- `src/lib/color.ts`：色彩转换与评分
+- `src/lib/session.ts`：回合、计时与状态管理
+- `src/lib/storage.ts`：浏览器本地记录与设置
+- `src/scripts/`：页面交互
+- `src/styles/`：共享、游戏库、游戏样式
+- `public/images/`：原创游戏封面与背景
+- `tests/game.test.ts`：色彩、游戏规则、存储测试
+
+首页是通用游戏库框架。新增游戏时：
+
+1. 建立游戏页面，并在 `src/games/<游戏 ID>/info.ts` 导出一份 `GameDefinition`。
+2. 提供唯一 `id`、名称 `name`、入口 `href`、封面 `cover`、透明 Logo `logo`、背景 `background`、描述 `description`、标签 `tags` 和玩法说明 `instructions`；可选设置 `backgroundPosition`、底色 `backgroundColor`、默认浅色 / 深色配色 `theme`，以及独立的 `ui` 颜色配置。
+3. 在 `src/data/games.ts` 导入并注册。首页的游戏卡片、背景、Logo、文字、开始入口、说明和收藏数量会自动使用游戏信息。
+
+可选的 `stats` 提供标题和浏览器端成绩读取函数；未提供则隐藏成绩面板。框架不包含任何 Chroma Dash 专用成绩字段。方向键选择游戏，Enter 启动当前游戏；横向列表支持更多游戏，`/?game=<id>` 可直接选中指定游戏。
+
+### 每个游戏的 UI 配色
+
+公共界面统一使用主机风格的圆角、细边框、柔和阴影与半透明背景模糊。游戏只提供颜色，不覆盖布局、圆角、边框厚度或模糊强度。
+
+在游戏自己的 `info.ts` 中配置：
+
+```ts
+theme: 'light',
+backgroundColor: '#f5ead5',
+ui: {
+  text: '#494b43',
+  muted: '#686b62',
+  accent: '#61796e',
+  button: '#ddb29a73',
+  buttonText: '#303a36',
+  panel: '#fffaf073',
+  selection: '#708279',
+  overlay: '#f5ead508',
+  mobileOverlay: '#f5ead5e6',
+  dialog: '#faf7efdb',
+},
+```
+
+颜色支持带透明度的八位 HEX。可配置项：
+
+| 字段                        | 作用                              |
+| --------------------------- | --------------------------------- |
+| `text` / `muted`            | 主要文字 / 次要文字               |
+| `accent` / `selection`      | 图标和焦点强调色 / 当前游戏选中框 |
+| `button` / `buttonText`     | 开始游戏按钮底色 / 文字色         |
+| `panel` / `border`          | 半透明面板底色 / 通用细边框色     |
+| `overlay` / `mobileOverlay` | 背景遮罩 / 窄屏文字区域遮罩       |
+| `dialog` / `backdrop`       | 弹窗底色 / 弹窗外遮罩             |
+| `shadow`                    | 公共柔和阴影的颜色                |
+
+所有项目均可省略，按 `theme` 回退到默认配色。服务端首次渲染和浏览器切换游戏使用同一个解析器 `src/lib/library-theme.ts`，每次完整更新配色，避免上一款游戏的颜色残留。
+
+## 部署
+
+Cloudflare Pages：构建命令 `npm run build`，输出目录 `dist`。创建 GitHub 仓库、推送、连接 Pages、绑定 `games.galaxyrio.top` 和后续更新的完整步骤见 [DEPLOYMENT.md](DEPLOYMENT.md)。依赖、构建产物、缓存和私密环境文件由 .gitignore 排除；源代码、素材及 package-lock.json 保留追踪。
+
+## 素材
+
+Chroma Dash 的游戏库背景是原创奶油色手绘调色场景，封面裁切自同一插画，Logo 复用透明彩色字标。背景与封面均使用压缩后的 WebP；选中此游戏时，首页使用该游戏提供的浅色 UI 配色，公共控件样式保持统一。游戏本体使用 CSS/SVG，音效使用 Web Audio 合成。素材与生成提示词见 `ASSETS.md`。

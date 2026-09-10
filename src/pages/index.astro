@@ -1,0 +1,230 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Icon from '../components/Icon.astro';
+import { games } from '../data/games';
+import { resolveLibraryTheme } from '../lib/library-theme';
+import '../styles/library.css';
+const game = games[0]!;
+const theme = resolveLibraryTheme(game);
+const collectionCount = String(games.length).padStart(2, '0');
+---
+
+<Layout
+  title="galaxyrio · 游乐场"
+  bodyClass="library-page"
+  bodyStyle={theme.variables}
+  themeColor={theme.background}
+>
+  <div class="library-backdrop" aria-hidden="true">
+    <img
+      id="library-background"
+      src={game.background}
+      style={{ objectPosition: game.backgroundPosition ?? 'center' }}
+      alt=""
+      fetchpriority="high"
+    />
+    <div class="backdrop-shade"></div>
+  </div>
+  <div class="library-shell">
+    <header class="console-header">
+      <a class="wordmark" href="/" aria-label="galaxyrio PLAY 首页">
+        <img
+          class="brand-symbol"
+          src="/images/galaxyrio-logo.svg"
+          alt=""
+          width="44"
+          height="44"
+        />
+        <span class="wordmark-type"
+          ><span class="wordmark-name">galaxyrio</span><span
+            class="wordmark-sub">PLAY</span
+          ></span
+        >
+      </a>
+      <nav class="console-nav" aria-label="主导航">
+        <a href="/" aria-current="page">游戏</a>
+      </nav>
+      <div class="system-actions">
+        <button class="icon-button" data-sound-toggle aria-label="音效"
+          ><Icon name="sound" /></button
+        >
+        <button class="icon-button" data-fullscreen aria-label="全屏"
+          ><Icon name="expand" /></button
+        >
+        <time data-clock class="system-clock">--:--</time>
+      </div>
+    </header>
+    <main id="main" class="library-main">
+      <section class="game-selection" aria-label="选择游戏">
+        <div class="game-rail" role="group" aria-label="游戏列表">
+          {
+            games.map((item, index) => (
+              <button
+                class:list={['game-tile', { selected: index === 0 }]}
+                aria-pressed={index === 0}
+                tabindex={index === 0 ? 0 : -1}
+                data-game-tile={item.id}
+                aria-label={
+                  item.name +
+                  (index === 0 ? '，已选中。按回车游玩。' : '，选择游戏。')
+                }
+              >
+                <img
+                  class="tile-cover"
+                  src={item.cover}
+                  alt=""
+                  width="128"
+                  height="128"
+                />
+                <img class="tile-logo" src={item.logo} alt="" loading="lazy" />
+              </button>
+            ))
+          }
+          <button
+            class="library-tile"
+            data-open-dialog="library-dialog"
+            aria-label="打开游戏库"
+          >
+            <Icon name="grid" size={32} /><span>游戏库</span>
+          </button>
+        </div>
+        <div class="rail-caption">
+          <p
+            id="selected-game-name"
+            class="selected-game-name"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {game.name}
+          </p>
+          <span class="collection-count">游戏库 <b>{collectionCount}</b></span>
+        </div>
+      </section>
+      <section class="game-hub" aria-labelledby="game-title">
+        <div class="hub-copy">
+          <h1 id="game-title">
+            <img
+              id="game-logo"
+              src={game.logo}
+              alt={game.name}
+              fetchpriority="high"
+            />
+          </h1>
+          <div class="game-tags" id="game-tags">
+            {game.tags.map((tag) => <span>{tag}</span>)}
+          </div>
+          <p class="game-description" id="game-description">
+            {game.description}
+          </p>
+          <div class="hero-actions">
+            <a class="play-button" id="primary-play" href={game.href}
+              ><Icon name="play" size={18} /><span>开始游戏</span></a
+            >
+            <button
+              class="round-button"
+              id="game-about-button"
+              data-open-dialog="about-dialog"
+              aria-label={'了解 ' + game.name + ' 玩法'}
+              ><Icon name="info" /></button
+            >
+          </div>
+        </div>
+        <aside
+          class="personal-best"
+          id="game-stats"
+          hidden={!game.stats}
+          aria-labelledby="game-stats-title"
+        >
+          <Icon name="trophy" size={26} />
+          <div class="stats-copy">
+            <p id="game-stats-title">{game.stats?.title}</p><dl
+              id="game-stats-values"
+            >
+            </dl>
+          </div>
+        </aside>
+      </section>
+    </main>
+    <footer class="console-footer">
+      <div class="control-hints">
+        <span><kbd>Enter</kbd> 开始游戏</span><span
+          ><kbd>←</kbd><kbd>→</kbd> 选择游戏</span
+        >
+      </div>
+      <a href="https://www.galaxyrio.top"
+        >返回主站 <Icon name="arrow" size={16} /></a
+      >
+    </footer>
+  </div>
+  <dialog id="about-dialog" class="system-dialog" aria-labelledby="about-title">
+    <div class="dialog-heading">
+      <h2 id="about-title">{game.name}</h2>
+      <button class="icon-button" data-close-dialog aria-label="关闭玩法说明"
+        ><Icon name="close" /></button
+      >
+    </div>
+    <p class="dialog-description" id="about-description">{game.description}</p>
+    <div class="instruction-list" id="about-instructions">
+      {
+        game.instructions.map((instruction, index) => (
+          <p>
+            <>
+              <b>{String(index + 1).padStart(2, '0')}</b>
+              <span>{instruction}</span>
+            </>
+          </p>
+        ))
+      }
+    </div>
+    <a class="play-button compact" id="about-play" href={game.href}
+      >开始游戏 <Icon name="arrow" size={18} /></a
+    >
+  </dialog>
+  <dialog
+    id="library-dialog"
+    class="system-dialog"
+    aria-labelledby="library-title"
+  >
+    <div class="dialog-heading">
+      <div>
+        <p class="eyebrow">YOUR COLLECTION / {collectionCount}</p><h2
+          id="library-title"
+        >
+          游戏库
+        </h2>
+      </div>
+      <button class="icon-button" data-close-dialog aria-label="关闭游戏库"
+        ><Icon name="close" /></button
+      >
+    </div>
+    <div class="collection-list">
+      {
+        games.map((item) => (
+          <button
+            class="collection-game"
+            data-select-game={item.id}
+            aria-label={'选择 ' + item.name}
+          >
+            <img
+              src={item.cover}
+              alt=""
+              width="96"
+              height="96"
+              loading="lazy"
+            />
+            <span>
+              <>
+                <strong>{item.name}</strong>
+                <small>{item.description}</small>
+                <span class="collection-play">选择游戏 →</span>
+              </>
+            </span>
+          </button>
+        ))
+      }
+    </div>
+  </dialog>
+  <script>
+    import '../scripts/library';
+  </script>
+</Layout>

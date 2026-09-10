@@ -1,0 +1,86 @@
+---
+import Icon from '../components/Icon.astro';
+import '../styles/global.css';
+interface Props {
+  title: string;
+  description?: string;
+  bodyClass?: string;
+  bodyStyle?: Record<string, string>;
+  themeColor?: string;
+}
+const {
+  title,
+  description = 'galaxyrio 的网页游乐场。打开即玩，让好奇心多停留一会儿。',
+  bodyClass = '',
+  bodyStyle,
+  themeColor = '#080c15',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" /><meta
+      name="viewport"
+      content="width=device-width, initial-scale=1"
+    />
+    <meta name="description" content={description} /><meta
+      name="theme-color"
+      content={themeColor}
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" /><title>
+      {title}
+    </title>
+  </head>
+  <body class={bodyClass} style={bodyStyle}>
+    <a class="skip-link" href="#main">跳到主要内容</a>
+    <slot />
+    <dialog
+      id="settings-dialog"
+      class="system-dialog"
+      aria-labelledby="settings-title"
+    >
+      <div class="dialog-heading">
+        <div>
+          <p class="eyebrow">MAKE YOURSELF AT HOME</p><h2 id="settings-title">
+            游玩设置
+          </h2>
+        </div><button
+          class="icon-button"
+          data-close-dialog
+          aria-label="关闭设置"><Icon name="close" /></button
+        >
+      </div>
+      <label class="setting-row"
+        ><span
+          ><strong>游戏音效</strong><small>滑动、提交和完成时的轻提示音</small
+          ></span
+        ><input id="sound-setting" type="checkbox" role="switch" /></label
+      >
+      <label class="setting-row"
+        ><span><strong>音量</strong></span><input
+          id="volume-setting"
+          type="range"
+          min="0"
+          max="100"
+          step="5"
+          aria-label="游戏音量"
+        /></label
+      >
+      <label class="setting-row"
+        ><span
+          ><strong>减少动态效果</strong><small>使用更简洁的界面切换</small
+          ></span
+        ><input id="motion-setting" type="checkbox" role="switch" /></label
+      >
+      <p class="dialog-note">设置与游玩记录保存在当前浏览器。</p>
+    </dialog>
+    <div class="toast" id="toast" role="status" hidden></div>
+    <noscript
+      ><div class="no-script">开启浏览器 JavaScript 后即可游玩。</div></noscript
+    >
+    <script>
+      import '../scripts/shared';
+    </script>
+  </body>
+</html>
