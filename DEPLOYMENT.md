@@ -1,6 +1,6 @@
 # 发布到 Cloudflare Pages
 
-当前项目采用 Astro 静态输出。GitHub 保存源码，Cloudflare Pages 安装依赖、构建并提供网站访问，游戏域名为 `games.galaxyrio.top`。
+当前项目采用 Astro 静态输出。GitHub 保存源码，Cloudflare Pages 安装依赖、构建并提供网站访问，游戏域名为 `games.galaxyrio.top`，排行榜接口为 `leaderboard.galaxyrio.top`。当前 Pages 项目名为 `web-games`。
 
 游戏前端仍是纯静态输出，不需要 Cloudflare 适配器。现在已集成独立的 **Cloudflare Worker + D1 排行榜**：完成一局后可提交在线成绩，管理页面可以删除记录、配置游戏与榜单。设置与最近游玩记录仍保存在浏览器 localStorage，本地记录不会自动转为线上成绩。
 
@@ -41,7 +41,7 @@ git push -u origin main
 | Build command          | npm run build                     |
 | Build output directory | dist                              |
 
-选择 Save and Deploy，等待首次构建完成。先访问平台分配的 `https://项目名.pages.dev/`，检查首页和 `/chroma/`。流程与参数参照 [Cloudflare 的 Astro 部署说明](https://developers.cloudflare.com/pages/framework-guides/deploy-an-astro-site/)。
+选择 Save and Deploy，等待首次构建完成，再按下一节绑定正式域名。平台同时提供一个默认的 `pages.dev` 地址，可用于首次检查；日常直接使用 `games.galaxyrio.top`。流程与参数参照 [Cloudflare 的 Astro 部署说明](https://developers.cloudflare.com/pages/framework-guides/deploy-an-astro-site/)。
 
 如果创建页面只显示“部署命令 `npx wrangler deploy`”、API 令牌等选项，说明进入了 Worker 的创建流程；返回创建入口选择 Pages，再导入静态游戏仓库。排行榜 Worker 按单独的服务指南部署。
 
@@ -55,7 +55,9 @@ git push -u origin main
 
 | 类型  | 名称  | 目标                     |
 | ----- | ----- | ------------------------ |
-| CNAME | games | 你的实际项目名.pages.dev |
+| CNAME | games | web-games-f3h.pages.dev |
+
+**这是一条 DNS 别名，不是网页跳转，也不是额外创建的反向代理站点。** Pages 在同一个部署上直接响应 `games.galaxyrio.top`，浏览器地址保持正式域名。保留这条 CNAME；以后每次成功的生产部署会自动更新这个正式域名，无需再手动转发。新建其他项目时，CNAME 目标以该项目实际分配的地址为准。
 
 在 Cloudflare DNS 中使用代理记录时保留向导的代理设置；目标填域名，不带 `https://` 或路径。若已经有同名 games 记录，先核对它当前的用途，再按向导处理冲突。
 
@@ -67,21 +69,21 @@ git push -u origin main
 
 ## 5. 接入在线排行榜
 
-先按 [排行榜服务 README](services/leaderboard/README.md#发布到-cloudflare-workers-与-d1) 完成 D1 创建、远程迁移、Worker 发布和密钥设置。
+首次部署时，按 [排行榜服务 README](services/leaderboard/README.md#发布到-cloudflare-workers-与-d1) 完成 D1 创建、远程迁移、Worker 发布和密钥设置。Worker 的自定义域名使用 `leaderboard.galaxyrio.top`，已记录在 `services/leaderboard/wrangler.jsonc` 的 `routes` 中；不需要将它 CNAME 到 `workers.dev`。已有服务切换域名时沿用原数据库和密钥。
 
 然后进入游戏 Pages 项目的 **Settings → Variables and Secrets**，为 Production 配置：
 
 | 变量                     | 值                                                                                    |
 | ------------------------ | ------------------------------------------------------------------------------------- |
-| `PUBLIC_LEADERBOARD_API` | 实际 Worker 基础地址，例如 `https://galaxyrio-leaderboard.YOUR_SUBDOMAIN.workers.dev` |
+| `PUBLIC_LEADERBOARD_API` | `https://leaderboard.galaxyrio.top` |
 
 地址不带 `/api` 或 `/admin`。这是公开接口地址，不是密钥；管理员密码与身份密钥应只设置在 Worker 的 Secret 中。
 
 确认 Worker 的 `ALLOWED_ORIGINS` 包含 `https://games.galaxyrio.top`。若要从 Pages 默认域名访问榜单，也加入对应的 `https://项目名.pages.dev`。
 
-保存 Pages 环境变量后**重新构建并部署前端**。生产构建未配置地址时，游戏仍能运行，但不会开放在线成绩提交。前端的构建命令仍为 `npm run build`，输出目录仍为 `dist`。
+保存 Pages 环境变量后，在 **Deployments → 当前 Production 部署 → Retry deployment（重试部署）** 重新构建；也可以推送一次代码更新。**只修改环境变量不会更新已经生成的静态页面，必须重新构建并部署前端。**生产构建未配置地址时，游戏仍能运行，但不会开放在线成绩提交。前端的构建命令仍为 `npm run build`，输出目录仍为 `dist`。
 
-打开正式游戏，完成一局后填写昵称提交成绩，再到 Worker 的 `/admin/` 登录，确认能找到并删除测试记录。线上 D1 和本地测试数据库互不混用。
+打开正式游戏，完成一局后填写昵称提交成绩，再到 [排行榜管理页面](https://leaderboard.galaxyrio.top/admin/) 登录，确认能找到并删除测试记录。线上 D1 和本地测试数据库互不混用。
 
 ## 6. 以后更新
 

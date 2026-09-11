@@ -87,7 +87,9 @@ npm.cmd run test:leaderboard
 
 ## 发布到 Cloudflare Workers 与 D1
 
-推荐首次使用下面的 Wrangler 命令完成发布。它会同时上传 API 和管理页面，并按项目配置绑定 D1。现有游戏网站继续托管于 Pages，排行榜作为另一个独立 Worker 运行。
+推荐首次使用下面的 Wrangler 命令完成发布。它会同时上传 API 和管理页面，并按项目配置绑定 D1。现有游戏网站继续托管于 Pages，排行榜作为另一个独立 Worker 运行。正式接口地址为 `https://leaderboard.galaxyrio.top`，管理页面为 `https://leaderboard.galaxyrio.top/admin/`。
+
+如果服务已经上线，只更换域名，沿用原 D1 数据库、`ADMIN_PASSWORD` 和 `IDENTITY_SECRET`，跳过创建数据库、初始化密钥等首次部署步骤。完成第 5 步的域名绑定，再按第 8 步重新构建前端即可。
 
 ### 1. 进入服务目录并登录 Cloudflare
 
@@ -108,7 +110,7 @@ npx.cmd wrangler d1 create galaxyrio-leaderboard
 
 记录命令返回的 `database_id`，它是一串 UUID。若 Wrangler 询问是否自动添加数据库绑定，可以选择不自动添加，下一步直接修改项目已有的配置。[D1 创建与绑定说明](https://developers.cloudflare.com/d1/get-started/)
 
-打开本目录的 `wrangler.jsonc`，将现有 `d1_databases` 中全零占位 ID 替换为刚才得到的 ID：
+打开本目录的 `wrangler.jsonc`，确认现有 `d1_databases` 中的 ID 对应目标数据库；首次部署到其他数据库时替换为刚才得到的 ID：
 
 ```jsonc
 "d1_databases": [
@@ -147,17 +149,23 @@ npm.cmd run db:migrate:remote
 
 ### 5. 发布 Worker 与管理页面
 
+项目的 `wrangler.jsonc` 已配置正式域名：
+
+```jsonc
+"routes": [
+  { "pattern": "leaderboard.galaxyrio.top", "custom_domain": true }
+]
+```
+
+`galaxyrio.top` 必须在当前 Cloudflare 账户中处于 Active 状态。部署命令会把该域名直接绑定到当前 Worker，并由 Cloudflare 配置 DNS 和证书；不要手动 CNAME 到 `workers.dev`。如果有同名 DNS 记录或域名绑定冲突，先核对原用途，不要直接覆盖。也可以在 **Workers & Pages → galaxyrio-leaderboard → Settings → Domains & Routes → Add → Custom domain** 中绑定，地址填 `leaderboard.galaxyrio.top`。已绑定时无需重复添加。[Workers 自定义域名说明](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/)
+
 ```powershell
 npm.cmd run deploy
 ```
 
-成功后终端会显示真实访问地址，形如：
+部署成功且域名证书就绪后，访问 `https://leaderboard.galaxyrio.top/api/v1/games`，应返回游戏与榜单配置。`workers_dev: true` 继续保留平台默认地址，兼容尚未刷新的旧游戏页面；正常访问使用正式域名，两个地址连接同一服务和数据库。
 
-```text
-https://galaxyrio-leaderboard.YOUR_SUBDOMAIN.workers.dev
-```
-
-复制该地址。项目已经配置 `assets.directory: "./public"`，因此管理页面随 Worker 一起上传，不需要另外创建管理站点或上传 HTML。[Workers 静态资源配置](https://developers.cloudflare.com/workers/static-assets/binding/)
+项目已经配置 `assets.directory: "./public"`，因此管理页面随 Worker 一起上传，不需要另外创建管理站点或上传 HTML。[Workers 静态资源配置](https://developers.cloudflare.com/workers/static-assets/binding/)
 
 ### 6. 设置两个云端密钥
 
@@ -187,11 +195,7 @@ node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
 
 ### 7. 打开管理页面并确认服务
 
-访问实际 Worker 地址加 `/admin/`，例如：
-
-```text
-https://galaxyrio-leaderboard.YOUR_SUBDOMAIN.workers.dev/admin/
-```
+访问 [排行榜管理页面](https://leaderboard.galaxyrio.top/admin/)。更换域名后需要重新登录，原管理员密码仍然有效。
 
 使用刚设置的云端管理员密码登录。切换到“游戏与榜单”，应能看到 Chroma Dash 和三个默认榜单。首次线上成绩列表为空是正常现象。
 
@@ -203,13 +207,13 @@ https://galaxyrio-leaderboard.YOUR_SUBDOMAIN.workers.dev/admin/
 
 | 环境变量                 | 值                                                                                             |
 | ------------------------ | ---------------------------------------------------------------------------------------------- |
-| `PUBLIC_LEADERBOARD_API` | 第 5 步返回的 Worker 基础地址，例如 `https://galaxyrio-leaderboard.YOUR_SUBDOMAIN.workers.dev` |
+| `PUBLIC_LEADERBOARD_API` | `https://leaderboard.galaxyrio.top` |
 
 地址不带 `/api` 或 `/admin`。这个变量是公开的接口地址，不是密码。若要在 Preview 构建中使用，同样设置 Preview 环境，并同步允许相应网站来源。
 
-保存后，在 Pages 的 Deployments 中重新执行生产构建，或推送一次前端代码更新。**必须重新构建**，因为 Astro 会在静态构建时读取 `PUBLIC_LEADERBOARD_API`。Pages 的构建命令仍是 `npm run build`，输出仍是 `dist`。[Pages 构建与环境变量说明](https://developers.cloudflare.com/pages/configuration/build-configuration/)
+保存后，在 Pages 的 **Deployments → 当前 Production 部署 → Retry deployment（重试部署）** 重新执行生产构建，或推送一次前端代码更新。**必须重新构建**，因为 Astro 会在静态构建时读取 `PUBLIC_LEADERBOARD_API`。Pages 的构建命令仍是 `npm run build`，输出仍是 `dist`。[Pages 构建与环境变量说明](https://developers.cloudflare.com/pages/configuration/build-configuration/)
 
-打开正式游戏网站，完成一局并提交；用另一个浏览器打开同一榜单，确认能看到成绩。然后在管理页面删除测试成绩，刷新游戏排行榜确认移除。完成后服务即可使用，无需给排行榜另配域名。
+打开正式游戏网站，完成一局并提交；用另一个浏览器打开同一榜单，确认能看到成绩。然后在管理页面删除测试成绩，刷新游戏排行榜确认移除。生产构建成功后，访问 `games.galaxyrio.top` 就会直接使用正式排行榜接口。若页面仍请求旧的 `workers.dev`，确认生产部署成功后再刷新页面；仅保存环境变量不会更新旧构建。
 
 ## 日常管理与更新
 
