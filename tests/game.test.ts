@@ -199,18 +199,23 @@ test('speed below 85 percent fails and stays on the same round', () => {
   assert.equal(s.totalTime(1000), 1000 + 1000);
   assert.equal(s.submit(1000), null);
 });
-test('exactly 85 percent passes immediately without a penalty and prepares the next speed round', () => {
+test('exactly 85 percent passes into answer reveal and waits for the next speed round', () => {
   const s = new ColorSession('speed');
   s.start(0);
   s.target = [94, 131, 180];
-  s.setGuess(guessForScore(s.target, 85), 10);
+  const guess = guessForScore(s.target, 85);
+  s.setGuess(guess, 10);
   assert.equal(s.submit(1000)?.passed, true);
   assert.equal(s.results.length, 1);
   assert.equal(s.results[0].score, 85);
+  assert.equal(s.phase, 'reveal');
+  assert.deepEqual(s.guess, guess);
+  assert.deepEqual(s.revealedAnswer, [94, 131, 180]);
+  assert.equal(s.penaltyMs, 0);
+  assert.equal(s.next(2000), true);
   assert.equal(s.phase, 'playing');
   assert.deepEqual(s.guess, [128, 128, 128]);
-  assert.equal(s.penaltyMs, 0);
-  assert.equal(s.next(2000), false);
+  assert.equal(s.revealedAnswer, null);
 });
 test('each failed speed submission accumulates its penalty exactly once', () => {
   const s = new ColorSession('speed');
@@ -242,20 +247,33 @@ test('ten submissions complete accuracy and blind; final score is their average,
     assert.equal(s.results.length, 10);
   }
 });
-test('the tenth speed pass freezes elapsed time including every penalty', () => {
+test('the tenth speed pass freezes active time and penalties while preserving its answer', () => {
   const s = new ColorSession('speed');
   s.start(100);
+  let roundStart = 100;
   for (let i = 0; i < 10; i++) {
-    s.setGuess(s.target, 1000 + i * 1000 - 1);
-    s.submit(1000 + i * 1000);
+    s.target = [0, 0, 0];
+    s.setGuess([255, 255, 255], roundStart + 100);
+    assert.equal(s.submit(roundStart + 200)?.passed, false);
+    s.setGuess(s.target, roundStart + 999);
+    assert.equal(s.submit(roundStart + 1000)?.passed, true);
+    if (i < 9) {
+      assert.equal(s.phase, 'reveal');
+      roundStart += 6000;
+      assert.equal(s.next(roundStart), true);
+    }
   }
   assert.equal(s.phase, 'finished');
   assert.equal(s.results.length, 10);
-  assert.equal(s.elapsed(900000), 9900);
-  assert.equal(s.totalTime(900000), 9900 + 10 * 0);
+  assert.equal(s.elapsed(900000), 10000);
+  assert.equal(s.totalTime(900000), 20000);
+  assert.deepEqual(s.revealedAnswer, [0, 0, 0]);
   assert.equal(s.submit(900000), null);
   assert.equal(s.tick(900000), null);
   assert.equal(s.next(900000), false);
+  assert.equal(s.setGuess([1, 2, 3], 900000), false);
+  assert.equal(s.elapsed(990000), 10000);
+  assert.equal(s.totalTime(990000), 20000);
 });
 test('restart clears results, penalty, final time and old deadlines', () => {
   const s = new ColorSession('speed');
@@ -509,4 +527,145 @@ test('retired practice records survive saving a new blind result but are not a p
     if (original) Object.defineProperty(globalThis, 'localStorage', original);
     else Reflect.deleteProperty(globalThis, 'localStorage');
   }
+});
+
+test('speed answer review pauses active time and resumes once per next action', () => {
+  const s = new ColorSession('speed');
+  s.start(100);
+  s.setGuess(s.target, 999);
+  s.submit(1100);
+  assert.equal(s.elapsed(1100), 1000);
+  assert.equal(s.elapsed(9000), 1000);
+  assert.equal(s.elapsed(12000), 1000);
+  assert.equal(s.submit(12000), null);
+  assert.equal(s.tick(12000), null);
+  assert.equal(s.setGuess([1, 2, 3], 12000), false);
+
+  assert.equal(s.next(12100), true);
+  assert.equal(s.next(15000), false);
+  assert.equal(s.elapsed(13100), 2000);
+  s.setGuess(s.target, 13199);
+  s.submit(13200);
+  assert.equal(s.elapsed(50000), 2100);
+  assert.equal(s.next(53200), true);
+  assert.equal(s.next(54000), false);
+  assert.equal(s.elapsed(54200), 3100);
+  assert.equal(s.penaltyMs, 0);
+});
+
+test('failed speed submissions keep time running and do not reveal the correct answer', () => {
+  const s = new ColorSession('speed');
+  assert.equal(s.revealedAnswer, null);
+  s.start(0);
+  s.target = [0, 0, 0];
+  s.setGuess([255, 255, 255], 100);
+  const attempt = s.submit(1000)!;
+  assert.equal(attempt.passed, false);
+  assert.equal(s.phase, 'playing');
+  assert.equal(s.revealedAnswer, null);
+  assert.equal(s.elapsed(6000), 6000);
+  assert.equal(s.totalTime(6000), 7000);
+  s.setGuess([254, 255, 255], 6100);
+  assert.equal(s.revealedAnswer, null);
+});
+
+for (const mode of ['accuracy', 'blind'] as const) {
+  test(
+    mode +
+      ' manual and timed-out answers use protected snapshots without changing elapsed semantics',
+    () => {
+      const s = new ColorSession(mode);
+      assert.equal(s.revealedAnswer, null);
+      s.start(100);
+      s.target = [94, 131, 180];
+      s.setGuess([10, 20, 30], 200);
+      assert.equal(s.revealedAnswer, null);
+      s.submit(1100);
+      assert.deepEqual(s.revealedAnswer, [94, 131, 180]);
+      const display = s.revealedAnswer as RGB | null;
+      assert.ok(display);
+      display[0] = 255;
+      s.target[1] = 0;
+      s.guess[2] = 0;
+      assert.deepEqual(s.revealedAnswer, [94, 131, 180]);
+      assert.deepEqual(s.results[0].target, [94, 131, 180]);
+      assert.deepEqual(s.results[0].guess, [10, 20, 30]);
+      assert.equal(s.elapsed(6100), 6000);
+      assert.equal(s.next(10100), true);
+      assert.equal(s.revealedAnswer, null);
+      assert.equal(s.remaining(10100), 30000);
+      assert.equal(s.elapsed(11100), 11000);
+
+      s.target = [20, 160, 230];
+      s.setGuess([5, 15, 25], 11100);
+      assert.equal(s.tick(40100)?.timedOut, true);
+      assert.deepEqual(s.revealedAnswer, [20, 160, 230]);
+      s.target[0] = 99;
+      assert.deepEqual(s.revealedAnswer, [20, 160, 230]);
+      s.start(50000);
+      assert.equal(s.revealedAnswer, null);
+      assert.equal(s.lastAttempt, null);
+      assert.equal(s.elapsed(50100), 100);
+      assert.equal(s.remaining(50000), 30000);
+    },
+  );
+
+  test(
+    mode + ' preserves the final answer for both manual and timeout finishes',
+    () => {
+      for (const timedOut of [false, true]) {
+        const s = new ColorSession(mode);
+        s.start(0);
+        let roundStart = 0;
+        for (let round = 0; round < 10; round++) {
+          s.target = [round, 100 + round, 200 + round];
+          s.setGuess([1, 2, 3], roundStart + 1);
+          const now = roundStart + (timedOut ? 30000 : 1000);
+          const attempt = timedOut ? s.tick(now) : s.submit(now);
+          assert.equal(attempt?.timedOut, timedOut);
+          if (round < 9) {
+            roundStart = now + 5000;
+            assert.equal(s.next(roundStart), true);
+          }
+        }
+        assert.equal(s.phase, 'finished');
+        assert.deepEqual(s.revealedAnswer, [9, 109, 209]);
+        const elapsed = s.elapsed(900000);
+        const display = s.revealedAnswer as RGB | null;
+        assert.ok(display);
+        display[1] = 0;
+        s.target[2] = 0;
+        assert.deepEqual(s.revealedAnswer, [9, 109, 209]);
+        assert.equal(s.next(900000), false);
+        assert.equal(s.submit(900000), null);
+        assert.equal(s.elapsed(990000), elapsed);
+        s.start(1000000);
+        assert.equal(s.revealedAnswer, null);
+        assert.equal(s.results.length, 0);
+      }
+    },
+  );
+}
+
+test('speed restart clears completed and current answer-review pauses', () => {
+  const s = new ColorSession('speed');
+  s.start(0);
+  s.setGuess(s.target, 999);
+  s.submit(1000);
+  assert.equal(s.next(11000), true);
+  s.setGuess(s.target, 11999);
+  s.submit(12000);
+  assert.equal(s.elapsed(50000), 2000);
+  assert.ok(s.revealedAnswer);
+  s.start(60000);
+  assert.equal(s.phase, 'playing');
+  assert.equal(s.revealedAnswer, null);
+  assert.equal(s.lastAttempt, null);
+  assert.equal(s.results.length, 0);
+  assert.equal(s.elapsed(61000), 1000);
+  s.setGuess(s.target, 61999);
+  s.submit(62000);
+  assert.equal(s.elapsed(90000), 2000);
+  assert.equal(s.next(100000), true);
+  assert.equal(s.elapsed(101000), 3000);
 });

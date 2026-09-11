@@ -47,7 +47,7 @@ const modeDescriptions = {
   blind:
     '每关 30 秒，共 10 关；调色时隐藏你的颜色，提交或到时后揭晓，最终成绩为平均准确率。',
   speed:
-    '10 关，不限时；准确率达到 85% 立即过关，否则加罚 1 秒并继续当前关。总用时越低越好。',
+    '10 关，不限时；准确率达到 85% 过关并显示答案，点击下一关继续，查看答案时暂停计时。未通过加罚 1 秒，总用时越低越好。',
 };
 function inputError(message = '') {
   el('input-error').textContent = message;
@@ -80,6 +80,29 @@ function paintColors() {
     : '等你来调色';
   el('target-swatch').classList.toggle('is-covered', ready);
   el('guess-swatch').classList.toggle('is-covered', hideGuess);
+}
+function paintAnswer() {
+  const answer = session.revealedAnswer;
+  channelNames.forEach((channel, index) => {
+    const marker = el('answer-thumb-' + channel);
+    const value = el('answer-value-' + channel);
+    marker.hidden = !answer;
+    value.hidden = !answer;
+    value.textContent = answer ? String(answer[index]) : '';
+    if (answer) {
+      marker.style.setProperty(
+        '--answer-position',
+        (answer[index] / 255) * 100 + '%',
+      );
+      value.setAttribute(
+        'aria-label',
+        channel.toUpperCase() + ' 正确数值 ' + answer[index],
+      );
+    } else {
+      marker.style.removeProperty('--answer-position');
+      value.removeAttribute('aria-label');
+    }
+  });
 }
 function paintClock() {
   const current = now();
@@ -157,13 +180,13 @@ function render() {
     ready: '开始调色！',
     playing: '提交',
     reveal: '下一关',
-    finished: '再来一局',
+    finished: '查看成绩',
   }[session.phase];
   el('submit-hint').textContent = {
     ready: '开始本局',
     playing: '提交答案',
     reveal: '进入下一关',
-    finished: '开启新的一局',
+    finished: '查看本局成绩',
   }[session.phase];
   el('mode-description').textContent = modeDescriptions[mode];
   const chips = el('round-chips');
@@ -200,6 +223,7 @@ function render() {
     : '尚未完成关卡';
   syncInputs();
   paintColors();
+  paintAnswer();
   paintClock();
   paintNotice();
 }
@@ -214,7 +238,7 @@ function startSession() {
   render();
   sound('tap');
 }
-function showFinished() {
+function prepareSummary() {
   if (finishedPresented) return;
   finishedPresented = true;
   inputError();
@@ -264,7 +288,6 @@ function showFinished() {
       if (dialog !== summary) dialog.close();
     });
   pendingMode = null;
-  if (!summary.open) summary.showModal();
   sound('finish');
 }
 function refreshDeadline(current = now()) {
@@ -272,7 +295,7 @@ function refreshDeadline(current = now()) {
   if (!expired) return false;
   lastFeedback = expired;
   inputError();
-  if (session.isFinished) showFinished();
+  if (session.isFinished) prepareSummary();
   else {
     render();
     sound('submit');
@@ -306,7 +329,11 @@ function action() {
   const current = now();
   if (current < actionLockedUntil) return;
   actionLockedUntil = current + 260;
-  if (session.phase === 'ready' || session.phase === 'finished') {
+  if (session.phase === 'finished') {
+    if (!summary.open) summary.showModal();
+    return;
+  }
+  if (session.phase === 'ready') {
     startSession();
     return;
   }
@@ -322,7 +349,7 @@ function action() {
   const attempt = session.submit(current);
   if (attempt) lastFeedback = attempt;
   if (session.isFinished) {
-    showFinished();
+    prepareSummary();
     return;
   }
   render();
@@ -424,8 +451,9 @@ document.querySelectorAll<HTMLButtonElement>('[data-mode]').forEach((button) =>
     if (!isMode(next) || next === mode) return;
     if (session.phase === 'playing' || session.phase === 'reveal') {
       pendingMode = next;
-      el<HTMLDialogElement>('restart-dialog').showModal();
       el('restart-title').textContent = '切换到' + modeLabels[next] + '？';
+      el('confirm-restart').textContent = '切换';
+      el<HTMLDialogElement>('restart-dialog').showModal();
     } else prepareMode(next);
     sound('tap');
   }),
@@ -434,12 +462,14 @@ el('restart-run').addEventListener('click', () => {
   if (session.phase === 'ready') return;
   pendingMode = null;
   el('restart-title').textContent = '重新开始这一局？';
+  el('confirm-restart').textContent = '重新开始';
   el<HTMLDialogElement>('restart-dialog').showModal();
 });
 el('confirm-restart').addEventListener('click', () => {
+  const next = pendingMode;
   el<HTMLDialogElement>('restart-dialog').close();
-  prepareMode(pendingMode ?? mode);
-  startSession();
+  prepareMode(next ?? mode);
+  if (next === null) startSession();
 });
 el('play-again').addEventListener('click', () => {
   summary.close();

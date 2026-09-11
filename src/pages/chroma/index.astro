@@ -146,25 +146,42 @@ import '../../styles/game.css';
                       </span>
                     </>
                   </label>
-                  <input
-                    id={'range-' + channel.toLowerCase()}
-                    type="range"
-                    min="0"
-                    max="255"
-                    step="1"
-                    value="128"
-                    aria-label={channel + ' 通道滑杆'}
-                  />
-                  <input
-                    id={'number-' + channel.toLowerCase()}
-                    aria-label={channel + ' 通道数值'}
-                    type="number"
-                    min="0"
-                    max="255"
-                    step="1"
-                    value="128"
-                    inputmode="numeric"
-                  />
+                  <div class="channel-slider">
+                    <span class="answer-track" aria-hidden="true">
+                      <span
+                        id={'answer-thumb-' + channel.toLowerCase()}
+                        class="answer-thumb"
+                        hidden
+                        aria-hidden="true"
+                      />
+                    </span>
+                    <input
+                      id={'range-' + channel.toLowerCase()}
+                      type="range"
+                      min="0"
+                      max="255"
+                      step="1"
+                      value="128"
+                      aria-label={channel + ' 通道滑杆'}
+                    />
+                  </div>
+                  <div class="channel-number">
+                    <input
+                      id={'number-' + channel.toLowerCase()}
+                      aria-label={channel + ' 通道数值'}
+                      type="number"
+                      min="0"
+                      max="255"
+                      step="1"
+                      value="128"
+                      inputmode="numeric"
+                    />
+                    <span
+                      id={'answer-value-' + channel.toLowerCase()}
+                      class="answer-value"
+                      hidden
+                    />
+                  </div>
                 </div>
               ))
             }
@@ -281,8 +298,9 @@ import '../../styles/game.css';
       </p>
       <p>
         <b>03</b><span id="speed-help"
-          >速度挑战：共 10 关，每关不限时。准确率达到 85% 立即过关；低于 85%
-          加罚 1 秒，留在当前关。最终总用时包含罚时，越低越好。</span
+          >速度挑战：共 10 关，每关不限时。准确率达到 85%
+          过关并显示答案，点击下一关继续，查看答案时暂停计时；低于 85% 加罚 1
+          秒，留在当前关。最终总用时包含罚时，越低越好。</span
         >
       </p>
       <p>

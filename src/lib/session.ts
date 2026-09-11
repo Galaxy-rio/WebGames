@@ -24,6 +24,8 @@ export class ColorSession {
   readonly roundLimitMs = 30000;
   private startedAt = 0;
   private endedAt: number | null = null;
+  private speedPausedAt: number | null = null;
+  private speedPausedMs = 0;
   private lastSubmittedAt = -Infinity;
   readonly mode: Mode;
   private random: () => number;
@@ -36,6 +38,10 @@ export class ColorSession {
   }
   get isGuessHidden() {
     return this.mode === 'blind' && this.phase === 'playing';
+  }
+  get revealedAnswer(): RGB | null {
+    if (this.phase !== 'reveal' && this.phase !== 'finished') return null;
+    return this.lastAttempt ? [...this.lastAttempt.target] : null;
   }
   get isFinished() {
     return this.phase === 'finished';
@@ -54,9 +60,11 @@ export class ColorSession {
       : 0;
   }
   elapsed(now: number) {
-    return this.phase === 'ready'
-      ? 0
-      : Math.max(0, (this.endedAt ?? now) - this.startedAt);
+    if (this.phase === 'ready') return 0;
+    const activeUntil =
+      this.endedAt ??
+      (this.mode === 'speed' ? (this.speedPausedAt ?? now) : now);
+    return Math.max(0, activeUntil - this.startedAt - this.speedPausedMs);
   }
   totalTime(now: number) {
     return this.elapsed(now) + this.penaltyMs;
@@ -66,6 +74,8 @@ export class ColorSession {
     this.penaltyMs = 0;
     this.startedAt = now;
     this.endedAt = null;
+    this.speedPausedAt = null;
+    this.speedPausedMs = 0;
     this.lastSubmittedAt = -Infinity;
     this.prepareRound(now);
   }
@@ -125,15 +135,18 @@ export class ColorSession {
     if (this.results.length === this.maxRounds) {
       this.phase = 'finished';
       this.endedAt = now;
-    } else if (this.mode === 'speed') {
-      this.prepareRound(now);
     } else {
       this.phase = 'reveal';
+      if (this.mode === 'speed') this.speedPausedAt = now;
     }
     return attempt;
   }
   next(now: number) {
     if (this.phase !== 'reveal') return false;
+    if (this.mode === 'speed' && this.speedPausedAt !== null) {
+      this.speedPausedMs += Math.max(0, now - this.speedPausedAt);
+      this.speedPausedAt = null;
+    }
     this.prepareRound(now);
     return true;
   }
