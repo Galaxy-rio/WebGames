@@ -181,14 +181,14 @@ function guessForScore(target: RGB, score: number): RGB {
   }
   throw new Error('No RGB fixture found for ' + score);
 }
-test('speed requires strictly greater than 90 percent and failed attempts stay on the same round', () => {
+test('speed below 85 percent fails and stays on the same round', () => {
   const s = new ColorSession('speed');
   s.start(0);
   s.target = [94, 131, 180];
-  const guess = guessForScore(s.target, 90);
+  const guess = guessForScore(s.target, 84);
   s.setGuess(guess, 100);
   const result = s.submit(1000)!;
-  assert.equal(result.score, 90);
+  assert.equal(result.score, 84);
   assert.equal(result.passed, false);
   assert.equal(result.penaltyMs, 1000);
   assert.deepEqual(s.target, [94, 131, 180]);
@@ -199,14 +199,14 @@ test('speed requires strictly greater than 90 percent and failed attempts stay o
   assert.equal(s.totalTime(1000), 1000 + 1000);
   assert.equal(s.submit(1000), null);
 });
-test('91 percent passes immediately and prepares the next speed round', () => {
+test('exactly 85 percent passes immediately without a penalty and prepares the next speed round', () => {
   const s = new ColorSession('speed');
   s.start(0);
   s.target = [94, 131, 180];
-  s.setGuess(guessForScore(s.target, 91), 10);
+  s.setGuess(guessForScore(s.target, 85), 10);
   assert.equal(s.submit(1000)?.passed, true);
   assert.equal(s.results.length, 1);
-  assert.equal(s.results[0].score, 91);
+  assert.equal(s.results[0].score, 85);
   assert.equal(s.phase, 'playing');
   assert.deepEqual(s.guess, [128, 128, 128]);
   assert.equal(s.penaltyMs, 0);

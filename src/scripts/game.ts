@@ -47,7 +47,7 @@ const modeDescriptions = {
   blind:
     '每关 30 秒，共 10 关；调色时隐藏你的颜色，提交或到时后揭晓，最终成绩为平均准确率。',
   speed:
-    '10 关，不限时；准确率大于 90% 立即过关，否则加罚 1 秒并继续当前关。总用时越低越好。',
+    '10 关，不限时；准确率达到 85% 立即过关，否则加罚 1 秒并继续当前关。总用时越低越好。',
 };
 function inputError(message = '') {
   el('input-error').textContent = message;
@@ -327,7 +327,12 @@ function action() {
   }
   render();
   if (attempt?.penaltyMs) floatPenalty(attempt.penaltyMs);
-  if (attempt) sound(attempt.passed && attempt.score > 90 ? 'good' : 'submit');
+  if (attempt)
+    sound(
+      attempt.passed && (mode === 'speed' || attempt.score > 90)
+        ? 'good'
+        : 'submit',
+    );
 }
 function applyGuess(rgb: RGB, origin?: HTMLElement) {
   const current = now();

@@ -101,11 +101,6 @@ async function loadBoard() {
         String(button.dataset.boardMode === mode),
       ),
     );
-  el('leaderboard-rule').textContent =
-    modeLabels[mode] +
-    ' · ' +
-    (mode === 'speed' ? '总用时越低越好' : '平均准确率越高越好') +
-    ' · 每人保留最佳';
   if (!client.configured) {
     pagination();
     return;

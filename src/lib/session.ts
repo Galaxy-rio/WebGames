@@ -103,7 +103,7 @@ export class ColorSession {
   }
   private finishAttempt(now: number, timedOut: boolean): Attempt {
     const score = scoreColor(this.target, this.guess);
-    const passed = this.mode !== 'speed' || score > 90;
+    const passed = this.mode !== 'speed' || score >= 85;
     const penaltyMs = this.mode === 'speed' && !passed ? 1000 : 0;
     const attempt: Attempt = {
       target: [...this.target],

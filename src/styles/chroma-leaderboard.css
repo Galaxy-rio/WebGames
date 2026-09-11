@@ -7,7 +7,7 @@
   padding: 5px;
   border-radius: 16px;
   background: #e6ebd7;
-  margin-top: 20px;
+  margin: 20px 0 8px;
 }
 .chroma-board-tabs button {
   flex: 1;
@@ -19,11 +19,6 @@
   background: #fffcf2;
   box-shadow: 0 2px 0 #bcc7a9;
   color: #506749;
-}
-.chroma-board-rule {
-  font-size: 0.75rem;
-  color: var(--muted);
-  margin: 16px 0;
 }
 .chroma-board-status {
   text-align: center;

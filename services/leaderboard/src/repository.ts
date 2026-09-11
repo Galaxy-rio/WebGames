@@ -207,6 +207,13 @@ export async function listEntries(
 ) {
   const order = board.sortOrder === 'asc' ? 'ASC' : 'DESC';
   const comparison = board.sortOrder === 'asc' ? '<' : '>';
+  // Only the first 50 ordered rows are public, including when a tie crosses the boundary.
+  // Keep the requested page size in the response; the final page can contain fewer rows.
+  const publicEntryLimit = 50;
+  const visiblePageSize = Math.min(
+    limit,
+    Math.max(0, publicEntryLimit - offset),
+  );
   const [rows, count] = await db.batch([
     db
       .prepare(
@@ -215,12 +222,12 @@ export async function listEntries(
       FROM entries e JOIN players p ON p.id=e.player_id WHERE e.game_id=? AND e.board_id=?
       ORDER BY e.score ${order},e.updated_at ASC,e.id ASC LIMIT ? OFFSET ?`,
       )
-      .bind(board.gameId, board.id, limit, offset),
+      .bind(board.gameId, board.id, visiblePageSize, offset),
     db
       .prepare(
-        'SELECT COUNT(*) AS total FROM entries WHERE game_id=? AND board_id=?',
+        'SELECT COUNT(*) AS total FROM (SELECT 1 FROM entries WHERE game_id=? AND board_id=? LIMIT ?)',
       )
-      .bind(board.gameId, board.id),
+      .bind(board.gameId, board.id, publicEntryLimit),
   ]);
   return {
     board,

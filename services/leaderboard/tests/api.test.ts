@@ -667,3 +667,116 @@ test('admin cookie is HttpOnly and Secure on HTTPS; changing password invalidate
   );
   assert.equal(((await session.json()) as Json).authenticated, false);
 });
+
+for (const { boardId, scoreForIndex, sqlOrder } of [
+  {
+    boardId: 'accuracy',
+    scoreForIndex: (index: number) => 1000 - index,
+    sqlOrder: 'DESC',
+  },
+  {
+    boardId: 'speed',
+    scoreForIndex: (index: number) => 10000 + index * 100,
+    sqlOrder: 'ASC',
+  },
+]) {
+  test(`public ${boardId} keeps exactly the top 50 across pages and boundary ties while admin retains every record`, async (t) => {
+    const { DB, call, score, login } = setup(t);
+    const path = entryPath('chroma', boardId);
+    const submissions: Json[] = [];
+    for (let index = 0; index < 65; index++) {
+      // Five equal scores straddle the cutoff: positions 49–53 all have rank 49.
+      const scoreIndex = index >= 48 && index <= 52 ? 48 : index;
+      const result = await call(path, {
+        body: score({
+          nickname: `top50-${boardId}-${index}`,
+          score: scoreForIndex(scoreIndex),
+        }),
+      });
+      assert.equal(result.response.status, 200);
+      assert.equal(result.data.improved, true);
+      submissions.push(result.data.entry);
+    }
+
+    const expected = DB.sqlite
+      .prepare(
+        `SELECT id,score FROM entries WHERE game_id='chroma' AND board_id=?
+       ORDER BY score ${sqlOrder},updated_at ASC,id ASC LIMIT 50`,
+      )
+      .all(boardId) as { id: string; score: number }[];
+
+    const pageResults = [];
+    for (const offset of [0, 20, 40]) {
+      const page = await call(path + '?limit=20&offset=' + offset);
+      assert.equal(page.response.status, 200);
+      assert.equal(page.data.total, 50);
+      assert.equal(page.data.limit, 20);
+      assert.equal(page.data.offset, offset);
+      pageResults.push(page.data.entries);
+    }
+    assert.deepEqual(
+      pageResults.map((entries) => entries.length),
+      [20, 20, 10],
+    );
+    const publicEntries = pageResults.flat();
+    assert.equal(
+      new Set(publicEntries.map((entry: Json) => entry.id)).size,
+      50,
+    );
+    assert.deepEqual(
+      publicEntries.map((entry: Json) => entry.id),
+      expected.map((entry) => entry.id),
+    );
+    assert.deepEqual(
+      publicEntries.slice(48).map((entry: Json) => entry.rank),
+      [49, 49],
+    );
+
+    const largePage = await call(path + '?limit=100&offset=0');
+    assert.equal(largePage.data.total, 50);
+    assert.equal(largePage.data.entries.length, 50);
+    assert.deepEqual(
+      largePage.data.entries.map((entry: Json) => entry.id),
+      expected.map((entry) => entry.id),
+    );
+    const lastEntry = await call(path + '?limit=100&offset=49');
+    assert.equal(lastEntry.data.entries.length, 1);
+    assert.equal(lastEntry.data.entries[0].id, expected[49].id);
+    for (const offset of [50, 51, 64, 1000000]) {
+      const outside = await call(path + '?limit=100&offset=' + offset);
+      assert.equal(outside.response.status, 200);
+      assert.equal(outside.data.total, 50);
+      assert.deepEqual(outside.data.entries, []);
+    }
+    assert.equal(
+      (await call(path + '?limit=1000000&offset=0')).response.status,
+      400,
+    );
+
+    const cookie = await login();
+    const adminPath = '/api/admin/entries?gameId=chroma&boardId=' + boardId;
+    const all = await call(adminPath + '&limit=100', { cookie });
+    assert.equal(all.response.status, 200);
+    assert.equal(all.data.total, 65);
+    assert.equal(all.data.entries.length, 65);
+    assert.deepEqual(
+      all.data.entries.map((entry: Json) => entry.id).sort(),
+      submissions.map((entry) => entry.id).sort(),
+    );
+    assert.equal(
+      all.data.entries.filter((entry: Json) => entry.rank === 49).length,
+      5,
+    );
+    const adminTail = await call(adminPath + '&limit=20&offset=50', { cookie });
+    assert.equal(adminTail.data.total, 65);
+    assert.equal(adminTail.data.entries.length, 15);
+    assert.equal(
+      (
+        DB.sqlite
+          .prepare('SELECT COUNT(*) AS count FROM entries WHERE board_id=?')
+          .get(boardId) as { count: number }
+      ).count,
+      65,
+    );
+  });
+}
