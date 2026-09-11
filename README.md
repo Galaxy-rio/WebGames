@@ -1,6 +1,6 @@
 # galaxyrio · 游乐场
 
-独立的 Astro 静态网页游戏项目。主页面采用主机游戏库布局，第一款游戏是 **Chroma Dash**。
+独立的 Astro 静态网页游戏项目。主页面采用主机游戏库布局，第一款游戏是 **Chroma Dash**。项目另含独立的 Cloudflare Workers + D1 排行榜服务和管理页面，各游戏共用 API、自行控制排行榜界面。
 
 ## 本地运行
 
@@ -26,7 +26,25 @@ npm.cmd test
 npm.cmd run build
 ```
 
-静态产物输出到 `dist/`。游戏本身不依赖服务器、数据库或账号。
+静态产物输出到 `dist/`。游戏玩法和本机记录可以独立运行；在线排行榜由 `services/leaderboard/` 中的 Worker + D1 提供，排行榜服务不可用时仍可继续游戏。
+
+## 在线排行榜
+
+已接入准度挑战、速度挑战、盲猜模式三张榜单。完成一局后可填写昵称提交，邮箱和网址选填；填写邮箱后，使用这个昵称需要匹配同一邮箱。每位玩家在每张榜单保留最佳成绩。
+
+首次本地准备，在项目根目录执行：
+
+```powershell
+npm.cmd --prefix services/leaderboard ci
+npm.cmd run leaderboard:setup
+npm.cmd run leaderboard:dev
+```
+
+另外打开一个终端运行 `npm.cmd run dev`。游戏开发页面会自动连接 `http://127.0.0.1:8787`；管理入口是 `http://127.0.0.1:8787/admin/`，本地密码由初始化脚本生成并保存在不受 Git 追踪的 `services/leaderboard/.dev.vars`。
+
+管理员可筛选、单删或批量删除成绩，添加游戏和榜单，解除昵称邮箱绑定。新增游戏和榜单通过管理页面完成，不必重新部署 Worker。
+
+线上需要单独部署排行榜 Worker，并在 Pages 设置 `PUBLIC_LEADERBOARD_API` 后重新构建。完整功能说明、本地运行、Cloudflare Workers + D1 逐步部署和 API 接入方式见 [排行榜服务 README](services/leaderboard/README.md)。
 
 ## 玩法
 
@@ -50,6 +68,9 @@ npm.cmd run build
 - `src/lib/color.ts`：色彩转换与评分
 - `src/lib/session.ts`：回合、计时与状态管理
 - `src/lib/storage.ts`：浏览器本地记录与设置
+- `src/lib/leaderboard.ts`：不含 UI 的通用排行榜客户端
+- `src/scripts/chroma-leaderboard.ts`：Chroma Dash 排行榜与成绩提交交互
+- `services/leaderboard/`：独立 Worker、D1 迁移、管理页面与服务测试
 - `src/scripts/`：页面交互
 - `src/styles/`：共享、游戏库、游戏样式
 - `public/images/`：原创游戏封面与背景
@@ -103,6 +124,8 @@ ui: {
 ## 部署
 
 Cloudflare Pages：构建命令 `npm run build`，输出目录 `dist`。创建 GitHub 仓库、推送、连接 Pages、绑定 `games.galaxyrio.top` 和后续更新的完整步骤见 [DEPLOYMENT.md](DEPLOYMENT.md)。依赖、构建产物、缓存和私密环境文件由 .gitignore 排除；源代码、素材及 package-lock.json 保留追踪。
+
+排行榜 API 和管理页面发布到一个独立 Worker，使用一个 D1 数据库；具体命令和配置见 [排行榜部署说明](services/leaderboard/README.md#发布到-cloudflare-workers-与-d1)。Pages 只构建静态游戏网站，不会自动发布此 Worker。
 
 ## 素材
 

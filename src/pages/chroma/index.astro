@@ -1,6 +1,8 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import Icon from '../../components/Icon.astro';
+import ChromaLeaderboard from '../../components/ChromaLeaderboard.astro';
+import ChromaScoreForm from '../../components/ChromaScoreForm.astro';
 import '../../styles/game.css';
 ---
 
@@ -231,12 +233,21 @@ import '../../styles/game.css';
           </div>
           <span id="average-label" class="sr-only">平均 —</span>
         </section>
-        <button
-          class="icon-button fullscreen-control"
-          data-fullscreen
-          aria-label="全屏"
-          title="全屏游玩"><Icon name="expand" size={20} /></button
-        >
+        <div class="chroma-footer-tools">
+          <button
+            class="icon-button"
+            id="open-leaderboard"
+            type="button"
+            aria-label="查看排行榜"
+            title="排行榜"><Icon name="trophy" size={20} /></button
+          >
+          <button
+            class="icon-button fullscreen-control"
+            data-fullscreen
+            aria-label="全屏"
+            title="全屏游玩"><Icon name="expand" size={20} /></button
+          >
+        </div>
       </footer>
       <p id="mode-description" class="sr-only">
         每关 30 秒，共 10 关；到时自动提交，最终成绩为平均准确率。
@@ -317,7 +328,7 @@ import '../../styles/game.css';
       id="summary-note"
     >
       已保存到本机游玩记录。
-    </p><button class="play-button" id="play-again"
+    </p><ChromaScoreForm /><button class="play-button" id="play-again"
       >再来一局 <Icon name="restart" size={18} /></button
     ><a class="summary-back" href="/">返回游戏库</a>
   </dialog>
@@ -340,6 +351,7 @@ import '../../styles/game.css';
       >
     </div>
   </dialog>
+  <ChromaLeaderboard />
   <script>
     import '../../scripts/game';
   </script>

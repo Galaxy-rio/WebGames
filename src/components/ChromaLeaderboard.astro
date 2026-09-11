@@ -1,0 +1,70 @@
+---
+import Icon from './Icon.astro';
+import '../styles/chroma-leaderboard.css';
+const apiUrl =
+  import.meta.env.PUBLIC_LEADERBOARD_API?.trim() ||
+  (import.meta.env.DEV ? 'http://127.0.0.1:8787' : '');
+---
+
+<dialog
+  id="leaderboard-dialog"
+  class="system-dialog chroma-board-dialog"
+  data-api-url={apiUrl}
+  aria-labelledby="leaderboard-title"
+>
+  <div class="dialog-heading">
+    <div>
+      <p class="eyebrow">CHROMA DASH</p><h2 id="leaderboard-title">
+        调色高手榜
+      </h2>
+    </div>
+    <button class="icon-button" data-close-dialog aria-label="关闭排行榜"
+      ><Icon name="close" /></button
+    >
+  </div>
+  <div class="chroma-board-tabs" role="group" aria-label="排行榜模式">
+    <button type="button" data-board-mode="accuracy" aria-pressed="true"
+      >准度挑战</button
+    >
+    <button type="button" data-board-mode="speed" aria-pressed="false"
+      >速度挑战</button
+    >
+    <button type="button" data-board-mode="blind" aria-pressed="false"
+      >盲猜模式</button
+    >
+  </div>
+  <p class="chroma-board-rule" id="leaderboard-rule">每位玩家保留最佳成绩</p>
+  <div
+    class="chroma-board-status"
+    id="leaderboard-status"
+    role="status"
+    aria-live="polite"
+  >
+  </div>
+  <ol class="chroma-board-list" id="leaderboard-list" aria-label="排行榜成绩">
+  </ol>
+  <div class="chroma-board-pagination">
+    <button class="subtle-button" type="button" id="leaderboard-prev" disabled
+      >上一页</button
+    >
+    <span id="leaderboard-page">第 1 页</span>
+    <button class="subtle-button" type="button" id="leaderboard-next" disabled
+      >下一页</button
+    >
+  </div>
+  <div class="chroma-board-bottom">
+    <span>完成一局后，就能留下你的成绩。</span>
+    <button class="chroma-text-button" type="button" id="leaderboard-refresh"
+      >刷新</button
+    >
+    <a
+      id="leaderboard-admin"
+      class="chroma-admin-link"
+      target="_blank"
+      rel="noopener"
+      aria-label="排行榜管理"
+      title="排行榜管理"
+      hidden><Icon name="settings" size={16} /></a
+    >
+  </div>
+</dialog>

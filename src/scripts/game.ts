@@ -8,6 +8,11 @@ import {
   formatDuration,
 } from '../lib/storage';
 import { sound } from '../lib/audio';
+import {
+  presentLeaderboardResult,
+  resetLeaderboardResult,
+  setLeaderboardMode,
+} from './chroma-leaderboard';
 const el = <T extends HTMLElement = HTMLElement>(id: string) =>
   document.getElementById(id) as T;
 const requested = new URLSearchParams(location.search).get('mode');
@@ -199,6 +204,7 @@ function render() {
   paintNotice();
 }
 function startSession() {
+  resetLeaderboardResult();
   inputError();
   resetFeedback();
   runId = crypto.randomUUID();
@@ -214,18 +220,19 @@ function showFinished() {
   inputError();
   render();
   const current = now();
-  if (!saved)
-    saved = saveRecord({
-      id: runId,
-      date: new Date().toISOString(),
-      mode,
-      total: session.total,
-      average: session.average,
-      best: session.best,
-      rounds: session.results.length,
-      elapsedMs: session.elapsed(current),
-      penaltyMs: session.penaltyMs,
-    });
+  const record = {
+    id: runId,
+    date: new Date().toISOString(),
+    mode,
+    total: session.total,
+    average: session.average,
+    best: session.best,
+    rounds: session.results.length,
+    elapsedMs: session.elapsed(current),
+    penaltyMs: session.penaltyMs,
+  };
+  if (!saved) saved = saveRecord(record);
+  presentLeaderboardResult(record);
   el('summary-mode').textContent = modeLabels[mode] + ' · 10 关完成';
   el('summary-total').textContent =
     mode === 'speed'
@@ -395,6 +402,8 @@ let pendingMode: typeof mode | null = null;
 function prepareMode(next: typeof mode) {
   resetFeedback();
   mode = next;
+  setLeaderboardMode(next);
+  resetLeaderboardResult();
   session = new ColorSession(mode);
   pendingMode = null;
   runId = '';
@@ -457,5 +466,6 @@ window.addEventListener('pagehide', () => {
   timerId = undefined;
 });
 window.addEventListener('pageshow', resumeTimer);
+setLeaderboardMode(mode);
 render();
 resumeTimer();

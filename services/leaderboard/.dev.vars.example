@@ -1,0 +1,6 @@
+# Copy to .dev.vars for local use only. This file contains examples, not working secrets.
+# Set ADMIN_PASSWORD to a password of at least 12 characters.
+ADMIN_PASSWORD=""
+# Set a random, long string (at least 32 characters); keep it stable after launch.
+# Changing this value invalidates nickname/email matches.
+IDENTITY_SECRET=""

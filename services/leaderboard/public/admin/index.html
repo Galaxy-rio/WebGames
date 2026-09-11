@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="color-scheme" content="light" />
+    <title>排行榜管理 · galaxyrio</title>
+    <link rel="stylesheet" href="/admin/admin.css" />
+    <script type="module" src="/admin/admin.js"></script>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="/admin/" aria-label="galaxyrio 排行榜管理">
+        <span class="brand-mark" aria-hidden="true">g.</span>
+        <span
+          >galaxyrio <span class="brand-divider">/</span>
+          <strong>排行榜管理</strong></span
+        >
+      </a>
+      <button id="logout" class="quiet" type="button" hidden>退出登录</button>
+    </header>
+
+    <main>
+      <p id="initial-loading" class="initial-loading" role="status">
+        正在连接排行榜服务…
+      </p>
+      <section
+        id="login-view"
+        class="login-card"
+        hidden
+        aria-labelledby="login-title"
+      >
+        <span class="eyebrow">WELCOME BACK</span>
+        <h1 id="login-title">管理每一份好成绩</h1>
+        <p class="muted">使用管理员密码登录，管理游戏、榜单和玩家记录。</p>
+        <form id="login-form">
+          <label for="password">管理员密码</label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autocomplete="current-password"
+            required
+          />
+          <p id="login-error" class="error" role="alert" hidden></p>
+          <button id="login-button" class="primary full" type="submit">
+            登录管理页面
+          </button>
+        </form>
+        <p class="form-hint">
+          管理员密码由服务配置提供，与玩家填写的邮箱相互独立。
+        </p>
+      </section>
+
+      <section id="app-view" hidden>
+        <div class="page-heading">
+          <div>
+            <span class="eyebrow">YOUR LITTLE ARCADE</span>
+            <h1>排行榜工作台</h1>
+          </div>
+          <p class="muted">所有游戏，一个管理入口。</p>
+        </div>
+        <div class="tabs" role="tablist" aria-label="管理功能">
+          <button
+            id="tab-entries"
+            role="tab"
+            aria-selected="true"
+            aria-controls="entries-panel"
+            data-tab="entries"
+            type="button"
+          >
+            成绩记录
+          </button>
+          <button
+            id="tab-catalog"
+            role="tab"
+            aria-selected="false"
+            aria-controls="catalog-panel"
+            data-tab="catalog"
+            tabindex="-1"
+            type="button"
+          >
+            游戏与榜单
+          </button>
+          <button
+            id="tab-players"
+            role="tab"
+            aria-selected="false"
+            aria-controls="players-panel"
+            data-tab="players"
+            tabindex="-1"
+            type="button"
+          >
+            昵称管理
+          </button>
+        </div>
+        <p id="notification" class="notification" role="status" hidden></p>
+
+        <section
+          id="entries-panel"
+          role="tabpanel"
+          aria-labelledby="tab-entries"
+        >
+          <form id="entries-filter" class="filter-bar">
+            <div class="field">
+              <label for="filter-game">游戏</label
+              ><select id="filter-game">
+                <option value="">全部游戏</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="filter-board">榜单</label
+              ><select id="filter-board" disabled>
+                <option value="">全部榜单</option>
+              </select>
+            </div>
+            <div class="field grow">
+              <label for="filter-nickname">昵称</label
+              ><input
+                id="filter-nickname"
+                type="search"
+                placeholder="搜索玩家昵称"
+                maxlength="80"
+              />
+            </div>
+            <button type="submit">查询</button>
+            <button id="entries-reset" class="quiet" type="button">重置</button>
+          </form>
+          <div class="data-card">
+            <div class="table-toolbar">
+              <p id="entries-count" class="muted">成绩记录</p>
+              <button
+                id="delete-selected"
+                class="danger quiet"
+                type="button"
+                disabled
+              >
+                删除所选
+              </button>
+            </div>
+            <p id="entries-status" class="table-status" role="status">
+              正在读取记录…
+            </p>
+            <div id="entries-table-wrap" class="table-wrap" hidden>
+              <table>
+                <thead>
+                  <tr>
+                    <th class="check-cell">
+                      <input
+                        id="select-all"
+                        type="checkbox"
+                        aria-label="选择本页全部记录"
+                      />
+                    </th>
+                    <th scope="col">玩家</th>
+                    <th scope="col">游戏 / 榜单</th>
+                    <th scope="col">成绩</th>
+                    <th scope="col">成绩时间</th>
+                    <th scope="col">辅助信息</th>
+                    <th scope="col" class="actions-cell">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="entries-body"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <p id="entries-page" class="muted">每页 20 条</p>
+              <div>
+                <button id="entries-prev" class="quiet" type="button" disabled>
+                  上一页</button
+                ><button id="entries-next" class="quiet" type="button" disabled>
+                  下一页
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section
+          id="catalog-panel"
+          role="tabpanel"
+          aria-labelledby="tab-catalog"
+          hidden
+        >
+          <div class="section-heading">
+            <div>
+              <h2>游戏与榜单</h2>
+              <p class="muted">
+                每个游戏可以拥有多张榜单，独立设置单位与排序方式。
+              </p>
+            </div>
+            <button id="new-game" class="primary" type="button">
+              ＋ 添加游戏
+            </button>
+          </div>
+          <p id="catalog-status" class="table-status" role="status">
+            正在读取游戏…
+          </p>
+          <div id="catalog-list" class="catalog-list"></div>
+        </section>
+
+        <section
+          id="players-panel"
+          role="tabpanel"
+          aria-labelledby="tab-players"
+          hidden
+        >
+          <div class="section-heading">
+            <div>
+              <h2>昵称管理</h2>
+              <p class="muted">邮箱仅用于昵称匹配，不在管理页面显示。</p>
+            </div>
+          </div>
+          <form id="players-filter" class="filter-bar">
+            <div class="field grow">
+              <label for="players-query">昵称</label
+              ><input
+                id="players-query"
+                type="search"
+                placeholder="搜索玩家昵称"
+                maxlength="80"
+              />
+            </div>
+            <button type="submit">查询</button
+            ><button id="players-reset" class="quiet" type="button">
+              重置
+            </button>
+          </form>
+          <div class="data-card">
+            <div class="table-toolbar">
+              <p id="players-count" class="muted">玩家昵称</p>
+            </div>
+            <p id="players-status" class="table-status" role="status">
+              正在读取昵称…
+            </p>
+            <div id="players-table-wrap" class="table-wrap" hidden>
+              <table>
+                <thead>
+                  <tr>
+                    <th scope="col">昵称</th>
+                    <th scope="col">绑定状态</th>
+                    <th scope="col">创建时间</th>
+                    <th scope="col" class="actions-cell">操作</th>
+                  </tr>
+                </thead>
+                <tbody id="players-body"></tbody>
+              </table>
+            </div>
+            <div class="pagination">
+              <p id="players-page" class="muted">每页 20 条</p>
+              <div>
+                <button id="players-prev" class="quiet" type="button" disabled>
+                  上一页</button
+                ><button id="players-next" class="quiet" type="button" disabled>
+                  下一页
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+    <footer>galaxyrio · 小游戏，大快乐</footer>
+
+    <dialog
+      id="confirm-dialog"
+      aria-labelledby="confirm-title"
+      class="compact-dialog"
+    >
+      <form method="dialog">
+        <h2 id="confirm-title">确认操作</h2>
+        <p id="confirm-message" class="dialog-message"></p>
+        <div class="dialog-actions">
+          <button value="cancel" class="quiet" autofocus>取消</button
+          ><button id="confirm-accept" value="confirm" class="danger solid">
+            确认
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="game-dialog" aria-labelledby="game-dialog-title">
+      <form id="game-form">
+        <div class="dialog-heading">
+          <h2 id="game-dialog-title">添加游戏</h2>
+          <button
+            class="icon-button quiet"
+            type="button"
+            data-close="game-dialog"
+            aria-label="关闭游戏编辑"
+          >
+            ×
+          </button>
+        </div>
+        <div class="field">
+          <label for="game-id">游戏 ID</label
+          ><input
+            id="game-id"
+            pattern="[a-z0-9][a-z0-9_\-]{0,47}"
+            maxlength="48"
+            placeholder="例如 chroma"
+            required
+          />
+          <p class="form-hint">
+            使用小写字母或数字开头，可含短横线与下划线，最多 48
+            位；创建后不可更改。
+          </p>
+        </div>
+        <div class="field">
+          <label for="game-name">展示名称</label
+          ><input
+            id="game-name"
+            maxlength="80"
+            required
+            placeholder="例如 Chroma Dash"
+          />
+        </div>
+        <label class="checkbox-label"
+          ><input id="game-enabled" type="checkbox" checked />
+          开放此游戏的排行榜服务</label
+        >
+        <p id="game-error" class="error" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button type="button" class="quiet" data-close="game-dialog">
+            取消</button
+          ><button type="submit" class="primary">保存游戏</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog
+      id="board-dialog"
+      aria-labelledby="board-dialog-title"
+      class="wide-dialog"
+    >
+      <form id="board-form">
+        <div class="dialog-heading">
+          <div>
+            <h2 id="board-dialog-title">添加榜单</h2>
+            <p id="board-game-label" class="muted"></p>
+          </div>
+          <button
+            class="icon-button quiet"
+            type="button"
+            data-close="board-dialog"
+            aria-label="关闭榜单编辑"
+          >
+            ×
+          </button>
+        </div>
+        <div class="form-grid">
+          <div class="field">
+            <label for="board-id">榜单 ID</label
+            ><input
+              id="board-id"
+              pattern="[a-z0-9][a-z0-9_\-]{0,47}"
+              maxlength="48"
+              required
+              placeholder="例如 accuracy"
+            />
+          </div>
+          <div class="field">
+            <label for="board-name">展示名称</label
+            ><input
+              id="board-name"
+              maxlength="60"
+              required
+              placeholder="例如 准度挑战"
+            />
+          </div>
+          <div class="field">
+            <label for="board-sort">排序方式</label
+            ><select id="board-sort">
+              <option value="desc">从高到低 · 越大越好</option>
+              <option value="asc">从低到高 · 越小越好</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="board-unit">显示单位</label
+            ><input
+              id="board-unit"
+              maxlength="12"
+              placeholder="例如 %、秒、分"
+            />
+          </div>
+          <div class="field">
+            <label for="board-scale">数值缩放倍数</label
+            ><input
+              id="board-scale"
+              type="number"
+              min="1"
+              max="1000000000"
+              step="1"
+              value="1"
+              required
+            />
+          </div>
+          <div class="field">
+            <label for="board-decimals">显示小数位</label
+            ><input
+              id="board-decimals"
+              type="number"
+              min="0"
+              max="6"
+              step="1"
+              value="0"
+              required
+            />
+          </div>
+          <div class="field">
+            <label for="board-min">最小存储值</label
+            ><input
+              id="board-min"
+              type="number"
+              min="-9007199254740991"
+              max="9007199254740991"
+              step="1"
+              value="0"
+              required
+            />
+          </div>
+          <div class="field">
+            <label for="board-max">最大存储值</label
+            ><input
+              id="board-max"
+              type="number"
+              min="-9007199254740991"
+              max="9007199254740991"
+              step="1"
+              value="1000000"
+              required
+            />
+          </div>
+        </div>
+        <p id="board-format-preview" class="format-preview"></p>
+        <div class="field">
+          <label for="board-metadata">允许的辅助信息字段（可选）</label
+          ><textarea
+            id="board-metadata"
+            rows="2"
+            placeholder="例如 rounds, penaltyMs, bestRoundAccuracy"
+          ></textarea>
+          <p class="form-hint">
+            最多 20
+            个，用逗号或换行分隔。字段名用字母开头，可含数字和下划线，最多 40
+            位。只接收这里列出的辅助字段。
+          </p>
+        </div>
+        <label class="checkbox-label"
+          ><input id="board-enabled" type="checkbox" checked />
+          开放此榜单提交</label
+        >
+        <p class="form-hint">
+          ID
+          创建后不可更改。已有成绩的榜单可能不允许修改计分配置；需要时可创建新榜单。
+        </p>
+        <p id="board-error" class="error" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button type="button" class="quiet" data-close="board-dialog">
+            取消</button
+          ><button type="submit" class="primary">保存榜单</button>
+        </div>
+      </form>
+    </dialog>
+  </body>
+</html>

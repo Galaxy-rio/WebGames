@@ -1,0 +1,68 @@
+---
+import Icon from './Icon.astro';
+---
+
+<details class="chroma-score-panel" id="leaderboard-submit-panel">
+  <summary><Icon name="trophy" size={17} />把成绩留在排行榜</summary>
+  <form id="leaderboard-submit-form">
+    <p class="chroma-submit-description" id="leaderboard-submit-description">
+    </p>
+    <div class="chroma-identity-fields">
+      <label
+        >昵称 <span>必填</span><input
+          name="nickname"
+          id="leaderboard-nickname"
+          required
+          maxlength="24"
+          autocomplete="nickname"
+          placeholder="怎么称呼你？"
+        /></label
+      >
+      <label
+        >邮箱 <span>选填 · 用于保护昵称</span><input
+          name="email"
+          id="leaderboard-email"
+          type="email"
+          maxlength="254"
+          autocomplete="email"
+          placeholder="之后使用同一昵称时填写"
+        /></label
+      >
+      <label class="chroma-website-field"
+        >网址 <span>选填</span><input
+          name="website"
+          id="leaderboard-website"
+          type="url"
+          maxlength="500"
+          autocomplete="url"
+          placeholder="https://"
+        /></label
+      >
+    </div>
+    <label class="chroma-remember"
+      ><input
+        type="checkbox"
+        id="leaderboard-remember"
+      />在此浏览器记住填写信息</label
+    >
+    <p class="chroma-form-note">
+      邮箱不会公开；填过邮箱的昵称，以后需填写同一邮箱。
+    </p>
+    <button
+      class="subtle-button chroma-publish-button"
+      type="submit"
+      id="leaderboard-publish"
+      >提交排行榜 <Icon name="arrow" size={17} /></button
+    >
+    <p
+      id="leaderboard-submit-status"
+      class="chroma-submit-status"
+      role="status"
+      aria-live="polite"
+    >
+    </p>
+  </form>
+</details>
+<button class="chroma-summary-board" id="summary-view-leaderboard" type="button"
+  ><Icon name="trophy" size={16} />查看排行榜</button
+>

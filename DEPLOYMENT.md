@@ -2,7 +2,9 @@
 
 当前项目采用 Astro 静态输出。GitHub 保存源码，Cloudflare Pages 安装依赖、构建并提供网站访问，游戏域名为 `games.galaxyrio.top`。
 
-项目不需要 Cloudflare 适配器或单独的 Worker。成绩与设置目前存储在浏览器 localStorage；跨设备排行榜尚未接入，本地开发地址上的记录也不会自动出现在正式域名下。
+游戏前端仍是纯静态输出，不需要 Cloudflare 适配器。现在已集成独立的 **Cloudflare Worker + D1 排行榜**：完成一局后可提交在线成绩，管理页面可以删除记录、配置游戏与榜单。设置与最近游玩记录仍保存在浏览器 localStorage，本地记录不会自动转为线上成绩。
+
+本文件介绍静态游戏网站的发布。排行榜后端需要另外部署一次，完整步骤见 [排行榜服务部署指南](services/leaderboard/README.md#发布到-cloudflare-workers-与-d1)。两者可以放在同一个 GitHub 仓库，分别发布。
 
 ## 1. 在 GitHub 创建空仓库
 
@@ -41,6 +43,8 @@ git push -u origin main
 
 选择 Save and Deploy，等待首次构建完成。先访问平台分配的 `https://项目名.pages.dev/`，检查首页和 `/chroma/`。流程与参数参照 [Cloudflare 的 Astro 部署说明](https://developers.cloudflare.com/pages/framework-guides/deploy-an-astro-site/)。
 
+如果创建页面只显示“部署命令 `npx wrangler deploy`”、API 令牌等选项，说明进入了 Worker 的创建流程；返回创建入口选择 Pages，再导入静态游戏仓库。排行榜 Worker 按单独的服务指南部署。
+
 仓库的 `.node-version` 固定为 **26.5.1**，与当前本机验证构建的版本一致。Pages 支持读取这个文件；如果已有 `NODE_VERSION` 环境变量，则将它设为同一版本，避免配置冲突。项目使用 npm 和已提交的 package-lock.json，平台负责安装构建依赖。[Pages 构建环境说明](https://developers.cloudflare.com/pages/configuration/build-image/)
 
 ## 4. 绑定 games.galaxyrio.top
@@ -61,7 +65,25 @@ git push -u origin main
 
 等自定义域名显示 Active、HTTPS 证书就绪后，访问 [游戏主页](https://games.galaxyrio.top/) 和 [Chroma Dash](https://games.galaxyrio.top/chroma/)，检查图片、开始游戏、提交成绩以及三种模式。
 
-## 5. 以后更新
+## 5. 接入在线排行榜
+
+先按 [排行榜服务 README](services/leaderboard/README.md#发布到-cloudflare-workers-与-d1) 完成 D1 创建、远程迁移、Worker 发布和密钥设置。
+
+然后进入游戏 Pages 项目的 **Settings → Variables and Secrets**，为 Production 配置：
+
+| 变量                     | 值                                                                                    |
+| ------------------------ | ------------------------------------------------------------------------------------- |
+| `PUBLIC_LEADERBOARD_API` | 实际 Worker 基础地址，例如 `https://galaxyrio-leaderboard.YOUR_SUBDOMAIN.workers.dev` |
+
+地址不带 `/api` 或 `/admin`。这是公开接口地址，不是密钥；管理员密码与身份密钥应只设置在 Worker 的 Secret 中。
+
+确认 Worker 的 `ALLOWED_ORIGINS` 包含 `https://games.galaxyrio.top`。若要从 Pages 默认域名访问榜单，也加入对应的 `https://项目名.pages.dev`。
+
+保存 Pages 环境变量后**重新构建并部署前端**。生产构建未配置地址时，游戏仍能运行，但不会开放在线成绩提交。前端的构建命令仍为 `npm run build`，输出目录仍为 `dist`。
+
+打开正式游戏，完成一局后填写昵称提交成绩，再到 Worker 的 `/admin/` 登录，确认能找到并删除测试记录。线上 D1 和本地测试数据库互不混用。
+
+## 6. 以后更新
 
 修改完成后，在项目文件夹中执行：
 
@@ -76,5 +98,7 @@ git push
 ```
 
 每次推送到 main，Pages 会自动构建并更新正式站点；可在项目的 Deployments 中查看结果。新增游戏也沿用此流程。
+
+管理页面新增游戏或榜单只写入 D1，不需要重新部署 Worker。修改排行榜后端代码或管理页面时，需要在 `services/leaderboard` 目录运行 `npm run deploy`；当前的 Pages 自动构建不会代替 Worker 发布。数据库结构更新先执行服务目录中的 `npm run db:migrate:remote`。
 
 `node_modules/`、`dist/`、`.astro/` 等目录继续留在本地，供开发使用；不要提交它们。源码、运行所需素材、配置、测试和 package-lock.json 应保留在仓库中。
