@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import worker from '../src/index.ts';
 import type { Database, Env, QueryResult, Statement } from '../src/types.ts';
 
@@ -45,12 +45,11 @@ class LocalDatabase implements Database {
   sqlite: DatabaseSync;
   constructor() {
     this.sqlite = new DatabaseSync(':memory:');
-    this.sqlite.exec(
-      readFileSync(
-        new URL('../migrations/0001_initial.sql', import.meta.url),
-        'utf8',
-      ),
-    );
+    const directory = new URL('../migrations/', import.meta.url);
+    for (const file of readdirSync(directory)
+      .filter((name) => name.endsWith('.sql'))
+      .sort())
+      this.sqlite.exec(readFileSync(new URL(file, directory), 'utf8'));
   }
   prepare(query: string): LocalStatement {
     return new LocalStatement(this.sqlite, query);
@@ -72,6 +71,21 @@ class LocalDatabase implements Database {
 
 const ORIGIN = 'http://127.0.0.1:8787';
 const GAME_ORIGIN = 'http://127.0.0.1:4322';
+const flightMetadata = {
+  ruleVersion: 1,
+  seed: 20260324,
+  planetCount: 6,
+  discovered: 6,
+  flightSeconds: 400,
+  fuelSeconds: 80,
+  speedBonus: 15000,
+  angleBonus: 16000,
+  sequenceBonus: 2000,
+  impacts: 2,
+  completed: true,
+  autopilot: false,
+};
+const flightScore = 5000 + 18000 + 15000 + 16000 + 2000 - 1000 - 4000 - 8000;
 const entryPath = (game = 'chroma', board = 'accuracy') =>
   `/api/v1/games/${game}/boards/${board}/entries`;
 type Json = Record<string, any>;
@@ -137,7 +151,7 @@ function setup(t: { after(fn: () => void): void }) {
   return { DB, env, call, login, score };
 }
 
-test('seed exposes only the three expected Chroma boards and supports pagination', async (t) => {
+test('seed exposes the existing Chroma boards and supports pagination', async (t) => {
   const { call } = setup(t);
   const { data } = await call('/api/v1/games');
   assert.equal(data.games[0].id, 'chroma');
@@ -149,6 +163,62 @@ test('seed exposes only the three expected Chroma boards and supports pagination
   assert.equal(result.response.status, 200);
   assert.deepEqual(result.data.entries, []);
   assert.equal(result.data.total, 0);
+});
+
+test('Landroid board accepts completed integer scores, ranks descending and deduplicates retries', async (t) => {
+  const { call, score } = setup(t);
+  const catalog = await call('/api/v1/games');
+  const game = catalog.data.games.find(
+    (game: Json) => game.id === 'landroid-extended',
+  );
+  assert.equal(game.name, 'Landroid extended');
+  assert.equal(game.boards[0].id, 'exploration');
+  const payload = score({ score: flightScore, metadata: flightMetadata });
+  const first = await call(entryPath('landroid-extended', 'exploration'), {
+    body: payload,
+  });
+  assert.equal(first.response.status, 200);
+  const retry = await call(entryPath('landroid-extended', 'exploration'), {
+    body: payload,
+  });
+  assert.equal(retry.data.duplicate, true);
+  const lower = score({
+    score: -7000,
+    metadata: { ...flightMetadata, fuelSeconds: 0, flightSeconds: 6200 },
+  });
+  assert.equal(
+    (await call(entryPath('landroid-extended', 'exploration'), { body: lower }))
+      .response.status,
+    200,
+  );
+  const page = await call(entryPath('landroid-extended', 'exploration'));
+  assert.deepEqual(
+    page.data.entries.map((entry: Json) => entry.score),
+    [flightScore, -7000],
+  );
+  assert.equal(page.data.total, 2);
+});
+
+test('Landroid rejects incomplete, AUTO, fractional and inconsistent score submissions', async (t) => {
+  const { call, score } = setup(t);
+  for (const override of [
+    { metadata: { ...flightMetadata, completed: false } },
+    { metadata: { ...flightMetadata, autopilot: true } },
+    { metadata: { ...flightMetadata, discovered: 5 } },
+    { metadata: { ...flightMetadata, fuelSeconds: 401 } },
+    { metadata: { ...flightMetadata, sequenceBonus: 1000 } },
+    { score: flightScore + 1 },
+    { score: flightScore + 0.5 },
+  ]) {
+    const result = await call(entryPath('landroid-extended', 'exploration'), {
+      body: score({
+        score: flightScore,
+        metadata: flightMetadata,
+        ...override,
+      }),
+    });
+    assert.equal(result.response.status, 400);
+  }
 });
 
 test('descending scores, tied ranks, and pagination stay consistent', async (t) => {

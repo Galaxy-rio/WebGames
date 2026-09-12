@@ -1,4 +1,5 @@
 import type { Board, Env } from './types.ts';
+import { validateLandroidResult } from './landroid.ts';
 import {
   ApiError,
   boardInput,
@@ -104,6 +105,8 @@ async function publicApi(
   const websiteValue = website(data.website);
   const score = integer(data.score, '成绩', board.minScore, board.maxScore);
   const details = metadata(data.metadata, board.metadataFields);
+  if (gameId === 'landroid-extended' && boardId === 'exploration')
+    validateLandroidResult(score, details);
   const requestHash = await hmac(
     identitySecret(env),
     JSON.stringify([

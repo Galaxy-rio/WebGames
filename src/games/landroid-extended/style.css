@@ -1,0 +1,655 @@
+@font-face {
+  font-family: 'Landroid Mono';
+  src: url('/fonts/landroid-extended-mono.ttf') format('truetype');
+  font-weight: 400 600;
+  font-style: normal;
+  font-display: swap;
+}
+:root {
+  color-scheme: dark;
+  --space: #16161d;
+  --console: #b7b7ff;
+  --muted: #787891;
+  --auto: #4285f4;
+  --catalog-size: 9px;
+}
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--space);
+  color: var(--console);
+}
+body,
+button,
+input {
+  font-family: 'Landroid Mono', 'Noto Sans SC', monospace;
+}
+button,
+a,
+input,
+summary {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 1px solid #3c3c4f;
+  cursor: pointer;
+  border-radius: 0;
+}
+button:hover {
+  background: #b7b7ff0c;
+  border-color: #b7b7ff88;
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+summary:focus-visible {
+  outline: 1px solid var(--console);
+  outline-offset: 5px;
+}
+a {
+  color: inherit;
+  text-underline-offset: 4px;
+}
+[hidden] {
+  display: none !important;
+}
+#flight {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  height: 100dvh;
+  isolation: isolate;
+}
+#universe {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  outline: none;
+}
+#planet-guides {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 20;
+  pointer-events: none;
+}
+pre {
+  margin: 0;
+  font-family: 'Landroid Mono', monospace;
+  font-weight: 400;
+}
+.catalog {
+  /* Only reserve the triangle width; the guide canvas stays above all HUD text. */
+  position: absolute;
+  top: max(40px, env(safe-area-inset-top));
+  left: max(24px, env(safe-area-inset-left));
+  max-width: calc(52% - 24px);
+  max-height: calc(100% - 230px);
+  overflow-y: auto;
+  scrollbar-width: none;
+  pointer-events: auto;
+  touch-action: pan-y;
+  overscroll-behavior: contain;
+}
+.catalog::-webkit-scrollbar {
+  display: none;
+}
+.catalog pre {
+  font-size: var(--catalog-size);
+  line-height: 1.16;
+  letter-spacing: 1px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+#body-catalog {
+  margin-top: 1.3em;
+}
+.command-bar {
+  position: absolute;
+  right: max(24px, env(safe-area-inset-right));
+  top: max(20px, env(safe-area-inset-top));
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.game-mark {
+  font-size: var(--catalog-size);
+  color: var(--muted);
+  letter-spacing: 1.2px;
+}
+.game-mark span {
+  color: var(--console);
+  margin-left: 6px;
+  letter-spacing: 0.2px;
+}
+.menu-button {
+  display: grid;
+  place-items: center;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border-color: transparent;
+  line-height: 1;
+}
+.menu-button svg {
+  display: block;
+}
+.flight-heading {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+}
+.game-mark {
+  white-space: nowrap;
+}
+.flight-score {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--catalog-size);
+  white-space: nowrap;
+}
+.flight-score > span {
+  color: var(--muted);
+}
+.flight-score b {
+  color: #c6ff00;
+  font-size: 12px;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+}
+.flight-score[data-inactive='true'] b {
+  color: var(--muted);
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+dialog h2 {
+  font-weight: 400;
+  font-size: 19px;
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+.dialog-copy {
+  font-size: 11px;
+  line-height: 1.9;
+  color: #a0a0b8;
+  margin: 12px 0 18px;
+}
+.dialog-actions {
+  display: flex;
+  gap: 10px;
+}
+.dialog-actions > * {
+  flex: 1;
+}
+.dialog-actions button,
+.wide-action {
+  width: 100%;
+  padding: 13px 10px;
+  font-size: 11px;
+}
+.dialog-actions form {
+  margin: 0;
+  display: flex;
+}
+.dialog-actions > button {
+  border-color: var(--auto);
+}
+.result-score {
+  display: block;
+  color: #c6ff00;
+  font-size: 42px;
+  margin: 22px 0 12px;
+  letter-spacing: -2px;
+}
+.score-breakdown {
+  margin: 18px 0 24px;
+  font-size: 11px;
+  line-height: 1.6;
+}
+.score-breakdown > div {
+  display: flex;
+  justify-content: space-between;
+  margin: 8px 0;
+}
+.score-breakdown dt {
+  color: #a0a0b8;
+}
+.score-breakdown dd {
+  margin: 0;
+}
+.score-form {
+  border-top: 1px solid #333344;
+  padding-top: 18px;
+}
+.score-form > label,
+.optional-fields label {
+  display: grid;
+  gap: 8px;
+  font-size: 11px;
+  margin-bottom: 14px;
+}
+.score-form input:not([type='checkbox']) {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid #55556f;
+  background: var(--space);
+  color: var(--console);
+  padding: 10px;
+  border-radius: 0;
+  font: inherit;
+}
+.optional-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.identity-note {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.7;
+}
+.score-form > .remember-profile {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 10px;
+}
+.remember-profile input {
+  margin: 0;
+}
+.wide-action {
+  margin-top: 10px;
+}
+.board-entries {
+  list-style: none;
+  margin: 18px 0;
+  padding: 0;
+}
+.board-entries li {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px 0;
+  border-bottom: 1px solid #333344;
+  font-size: 12px;
+}
+.board-rank {
+  color: var(--muted);
+  width: 22px;
+  flex: 0 0 auto;
+}
+.board-entries li > div {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.board-entries strong {
+  font-weight: 400;
+  color: #c6ff00;
+}
+.board-entries small {
+  display: block;
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.board-pagination {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 9px;
+}
+.board-pagination button {
+  padding: 9px;
+  font-size: 10px;
+}
+@media (max-width: 390px) {
+  .flight-heading {
+    gap: 10px;
+  }
+  .flight-score {
+    gap: 5px;
+  }
+  .flight-score b {
+    font-size: 10px;
+  }
+  .optional-fields {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+.flight-console {
+  position: absolute;
+  left: max(24px, env(safe-area-inset-left));
+  right: max(24px, env(safe-area-inset-right));
+  bottom: max(34px, env(safe-area-inset-bottom));
+  pointer-events: none;
+}
+.flight-console pre {
+  font-size: 13px;
+  line-height: 1.16;
+  letter-spacing: 1px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.autopilot {
+  color: var(--auto);
+  margin-bottom: 9px;
+}
+.console-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+}
+#ship-telemetry {
+  flex: 1;
+  min-width: 0;
+}
+.console-button {
+  flex: 0 0 auto;
+  border: 1px solid var(--console);
+  padding: 9px 10px;
+  font-size: 12px;
+  letter-spacing: 1px;
+  pointer-events: auto;
+  min-height: 40px;
+}
+.console-button[aria-pressed='true'] {
+  background: var(--auto);
+  color: #fff;
+  border-color: var(--console);
+}
+.first-hint {
+  position: absolute;
+  left: 24px;
+  bottom: 160px;
+  font:
+    11px/1.85 'Landroid Mono',
+    monospace;
+  letter-spacing: 0.6px;
+  color: var(--console);
+  pointer-events: none;
+  transition: opacity 1s;
+}
+.first-hint span {
+  color: var(--muted);
+}
+.first-hint.dismissed {
+  opacity: 0;
+}
+.announcement {
+  position: absolute;
+  left: 50%;
+  bottom: 26px;
+  transform: translateX(-50%);
+  max-width: 85%;
+  text-align: center;
+  font-size: 11px;
+  letter-spacing: 0.6px;
+  color: var(--console);
+  pointer-events: none;
+}
+#flight[data-immersive='true'] .hud {
+  visibility: hidden;
+}
+#flight[data-immersive='true'] .menu-button {
+  opacity: 0.22;
+}
+.failure {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  background: var(--space);
+  padding: 24px;
+  line-height: 1.8;
+}
+dialog {
+  width: min(480px, calc(100% - 32px));
+  max-height: calc(100dvh - 40px);
+  padding: 26px 28px 22px;
+  border: 1px solid #55556f;
+  background: #191921;
+  color: var(--console);
+  scrollbar-width: thin;
+  scrollbar-color: #55556f transparent;
+  overscroll-behavior: contain;
+}
+dialog::backdrop {
+  background: #08080dc9;
+  backdrop-filter: blur(7px);
+}
+.menu-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: -6px -10px 19px 0;
+}
+.menu-top > span {
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--muted);
+}
+.menu-close {
+  border: 0;
+  width: 40px;
+  height: 40px;
+  font-size: 23px;
+}
+h1 {
+  font-weight: 400;
+  font-size: clamp(20px, 5vw, 26px);
+  line-height: 1.5;
+  margin: 0;
+  letter-spacing: -0.8px;
+}
+h1 span {
+  display: block;
+  font-size: 14px;
+  letter-spacing: 5px;
+  color: #c6ff00;
+}
+.menu-description {
+  color: var(--muted);
+  font-size: 12px;
+  margin: 17px 0 24px;
+  letter-spacing: 0.6px;
+}
+.resume-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  font-size: 13px;
+  border-color: var(--console);
+}
+.resume-button span {
+  font-size: 20px;
+}
+.menu-actions {
+  display: flex;
+  gap: 8px;
+  margin: 10px 0 22px;
+}
+.menu-actions button {
+  flex: 1;
+  padding: 12px 3px;
+  font-size: 10px;
+  white-space: nowrap;
+}
+details {
+  border-top: 1px solid #333344;
+}
+summary {
+  font-size: 12px;
+  padding: 16px 0;
+  cursor: pointer;
+}
+summary span {
+  float: right;
+  color: #676783;
+  font-size: 9px;
+  letter-spacing: 1px;
+  padding-top: 3px;
+}
+details p {
+  font:
+    11px/1.9 'Landroid Mono',
+    monospace;
+  color: #a0a0b8;
+  margin: 0 0 15px;
+}
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0 15px;
+  font-size: 12px;
+}
+input[type='checkbox'] {
+  width: 17px;
+  height: 17px;
+  accent-color: #b7b7ff;
+}
+.seed-form {
+  font-size: 11px;
+}
+.seed-form label {
+  display: block;
+  margin-bottom: 9px;
+}
+.seed-form > div {
+  display: flex;
+}
+.seed-form input {
+  min-width: 0;
+  flex: 1;
+  border: 1px solid #55556f;
+  padding: 11px;
+  background: var(--space);
+  color: var(--console);
+  border-radius: 0;
+  font-size: 13px;
+}
+.seed-form button {
+  padding: 10px;
+  border-color: #55556f;
+  border-left: 0;
+}
+.universe-actions {
+  display: flex;
+  gap: 10px;
+  margin: 13px 0 20px;
+}
+.universe-actions button {
+  flex: 1;
+  padding: 10px;
+  font-size: 11px;
+}
+.menu-footer {
+  border-top: 1px solid #333344;
+  padding-top: 19px;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  line-height: 1.7;
+}
+.menu-footer > span {
+  color: var(--muted);
+}
+.credits {
+  font-size: 9px;
+  color: #676783;
+  margin: 19px 0 0;
+}
+@media (max-aspect-ratio: 1/1) {
+  #flight {
+    --catalog-size: 8px;
+  }
+  .catalog {
+    top: max(72px, calc(env(safe-area-inset-top) + 48px));
+    left: max(24px, env(safe-area-inset-left));
+    max-width: calc(100% - 48px);
+    max-height: calc(100% - 250px);
+  }
+  .catalog pre {
+    font-size: var(--catalog-size);
+    letter-spacing: 0.8px;
+  }
+  .flight-console {
+    bottom: max(36px, calc(env(safe-area-inset-bottom) + 16px));
+  }
+  .flight-console pre {
+    font-size: clamp(10px, 2.9vw, 13px);
+    letter-spacing: 0.8px;
+  }
+  .first-hint {
+    bottom: 160px;
+    left: 24px;
+    font-size: 10px;
+  }
+  .game-mark {
+    font-size: var(--catalog-size);
+    letter-spacing: 0.45px;
+  }
+  .command-bar {
+    left: max(24px, env(safe-area-inset-left));
+    right: max(24px, env(safe-area-inset-right));
+    top: max(20px, env(safe-area-inset-top));
+    justify-content: space-between;
+  }
+  .announcement {
+    bottom: 14px;
+    font-size: 9px;
+    width: calc(100% - 48px);
+  }
+}
+@media (max-height: 480px) and (min-aspect-ratio: 1/1) {
+  .catalog {
+    top: 40px;
+    left: max(24px, env(safe-area-inset-left));
+    max-height: calc(100% - 200px);
+  }
+  .catalog pre {
+    font-size: 9px;
+  }
+  .flight-console {
+    bottom: 40px;
+  }
+  .flight-console pre {
+    font-size: 10px;
+  }
+  .first-hint {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .first-hint {
+    transition: none;
+  }
+  dialog::backdrop {
+    backdrop-filter: none;
+  }
+}

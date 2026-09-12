@@ -2,6 +2,12 @@ import { games } from '../data/games';
 import { GameLibrary } from '../lib/game-library';
 import { resolveLibraryTheme } from '../lib/library-theme';
 import { sound } from '../lib/audio';
+import { LibraryBackdrop } from './library-backdrop';
+import {
+  beginContentTransition,
+  prepareThemeMotion,
+  SelectedCaption,
+} from './library-motion';
 
 const library = new GameLibrary(
   games,
@@ -12,7 +18,17 @@ const el = <T extends HTMLElement = HTMLElement>(id: string) =>
 const tiles = Array.from(
   document.querySelectorAll<HTMLButtonElement>('[data-game-tile]'),
 );
-const background = el<HTMLImageElement>('library-background');
+const backdrop = new LibraryBackdrop(el('library-backdrop'), games);
+const caption = new SelectedCaption(
+  el('selected-game-name'),
+  tiles[0]!.parentElement!,
+);
+prepareThemeMotion(resolveLibraryTheme(library.current).variables);
+for (const game of games) {
+  const image = new Image();
+  image.src = game.logo;
+}
+let renderedId: string | null = null;
 
 function refreshStats() {
   const stats = library.current.stats;
@@ -34,6 +50,17 @@ function refreshStats() {
 }
 function render() {
   const game = library.current;
+  if (renderedId === game.id) return;
+  const animate = renderedId !== null;
+  const revealContent = beginContentTransition(
+    [
+      document.querySelector<HTMLElement>('.hub-copy')!,
+      el('game-stats'),
+      el('selected-game-name'),
+    ],
+    animate,
+  );
+  renderedId = game.id;
   const theme = resolveLibraryTheme(game);
   for (const [name, value] of Object.entries(theme.variables)) {
     document.body.style.setProperty(name, value);
@@ -54,10 +81,6 @@ function render() {
     tile.tabIndex = selected ? 0 : -1;
   });
   el('selected-game-name').textContent = game.name;
-  // The image element owns loading; rapid selection cannot commit an older preload.
-  if (background.getAttribute('src') !== game.background)
-    background.src = game.background;
-  background.style.objectPosition = game.backgroundPosition ?? 'center';
   const logo = el<HTMLImageElement>('game-logo');
   logo.src = game.logo;
   logo.alt = game.name;
@@ -90,6 +113,15 @@ function render() {
   );
   refreshStats();
   scrollCurrentIntoView();
+  const tile = tiles.find((item) => item.dataset.gameTile === game.id)!;
+  const rect = tile.getBoundingClientRect();
+  backdrop.show(
+    game,
+    { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 },
+    animate,
+  );
+  caption.select(tile, animate);
+  revealContent();
 }
 function selectGame(id: string) {
   if (!library.select(id)) return;
@@ -125,6 +157,13 @@ function moveSelection(direction: -1 | 1) {
   sound('tap');
 }
 tiles.forEach((tile) => {
+  tile.addEventListener('transitionend', (event) => {
+    if (
+      event.propertyName === 'width' &&
+      tile.dataset.gameTile === library.current.id
+    )
+      scrollCurrentIntoView();
+  });
   tile.addEventListener('click', () => {
     selectGame(tile.dataset.gameTile!);
     sound('tap');
@@ -168,4 +207,7 @@ document.addEventListener('keydown', (event) => {
   }
 });
 render();
+requestAnimationFrame(() => {
+  document.body.dataset.transitionsReady = 'true';
+});
 window.addEventListener('pageshow', refreshStats);

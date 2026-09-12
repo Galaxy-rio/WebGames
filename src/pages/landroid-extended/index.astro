@@ -1,0 +1,212 @@
+---
+import '../../games/landroid-extended/style.css';
+import FlightDialogs from '../../games/landroid-extended/Dialogs.astro';
+---
+
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#16161d" />
+    <meta name="description" content="驾驶飞船探索星系。" />
+    <link
+      rel="icon"
+      href="/images/landroid-extended-icon.svg"
+      type="image/svg+xml"
+    />
+    <link
+      rel="preload"
+      href="/fonts/landroid-extended-mono.ttf"
+      as="font"
+      type="font/ttf"
+      crossorigin
+    />
+    <title>Landroid extended · galaxyrio</title>
+  </head>
+  <body>
+    <main id="flight" aria-label="Landroid extended">
+      <canvas
+        id="universe"
+        tabindex="0"
+        role="application"
+        aria-label="太空飞行。使用鼠标或单指拖动控制方向和推力，点击 AUTO 自动驾驶。边缘编号三角指向星球。"
+        aria-describedby="flight-help"
+      >
+        此游戏需要支持 Canvas 的浏览器。
+      </canvas>
+      <div class="catalog hud" aria-label="星系与已探索天体">
+        <pre id="star-catalog"></pre>
+        <pre id="body-catalog"></pre>
+      </div>
+      <nav class="command-bar" aria-label="游戏菜单">
+        <div class="flight-heading hud">
+          <span class="game-mark">LANDROID <span>extended</span></span><output
+            id="flight-score"
+            class="flight-score"
+            aria-label="当前得分"
+            ><span>SCORE</span> <b id="score-value">5000</b></output
+          >
+        </div>
+        <button
+          id="menu-button"
+          class="menu-button"
+          aria-label="打开飞行菜单"
+          title="菜单"
+          ><svg
+            aria-hidden="true"
+            viewBox="0 0 24 24"
+            width="24"
+            height="24"
+            fill="currentColor"
+            ><circle cx="5" cy="12" r="1.5"></circle><circle
+              cx="12"
+              cy="12"
+              r="1.5"></circle><circle cx="19" cy="12" r="1.5"></circle></svg
+          ></button
+        >
+      </nav>
+      <div class="flight-console hud">
+        <pre id="autopilot-telemetry" class="autopilot" hidden></pre>
+        <div class="console-row">
+          <pre id="ship-telemetry"></pre>
+          <button
+            id="autopilot-button"
+            class="console-button"
+            aria-label="自动驾驶"
+            aria-pressed="false"
+            title="自动驾驶">AUTO</button
+          >
+        </div>
+      </div>
+      <p id="flight-help" class="first-hint hud">
+        按住并拖动，调整朝向与推力<br /><span
+          >松手后保持惯性 · AUTO 自动探索</span
+        >
+      </p>
+      <p
+        id="announcement"
+        class="announcement"
+        role="status"
+        aria-live="polite"
+      >
+      </p>
+      <canvas id="planet-guides" aria-hidden="true"></canvas>
+      <div id="failure" class="failure" hidden>
+        <p id="failure-text"></p><a href="/?game=landroid-extended"
+          >返回游戏库</a
+        >
+      </div>
+    </main>
+    <dialog id="flight-menu" aria-labelledby="menu-title">
+      <form method="dialog" class="menu-top">
+        <span>FLIGHT PAUSED</span><button
+          class="menu-close"
+          aria-label="关闭菜单">×</button
+        >
+      </form>
+      <h1 id="menu-title">Landroid<span>extended</span></h1>
+      <p class="menu-description">驾驶飞船探索星系。</p>
+      <button id="resume-button" class="resume-button"
+        >继续飞行 <span>↗</span></button
+      >
+      <div class="menu-actions">
+        <button id="fullscreen-button">全屏</button>
+        <button id="hide-hud-button">隐藏界面</button>
+      </div>
+      <div class="menu-actions">
+        <button id="open-flight-leaderboard">排行榜</button><button
+          id="show-flight-result"
+          hidden>本局得分</button
+        ><button id="new-flight">新的星系</button>
+      </div>
+      <details open>
+        <summary>飞行指南 <span>CONTROLS</span></summary>
+        <p>
+          在画面任意位置按住并拖动。内圈调整朝向，拖出内圈开始推进，越远推力越大。
+        </p>
+        <p>屏幕边缘的有指向所有星球的引导。</p>
+        <p>
+          着陆时让船头朝外、支脚朝向地面。落地后展开旗帜，发现天体信息。持续推进一秒即可起飞。
+        </p>
+        <p>
+          AUTO 会寻找尚未探索的行星，着陆停留
+          一段时间，然后再继续旅程。手动操作随时接管飞船。
+        </p>
+      </details>
+      <details>
+        <summary>计分规则 <span>SCORE</span></summary>
+        <p>首次着陆新星球时，相对速度越低、降落越垂直得分越高。</p>
+        <p>飞船在飞行中会根据时间和耗油量持续扣分。</p>
+        <p>AUTO模式不计分。</p>
+      </details>
+      <details>
+        <summary>显示 <span>DISPLAY</span></summary>
+        <label class="toggle-row"
+          ><span>坐标网格</span><input
+            id="grid-setting"
+            type="checkbox"
+            checked
+          /></label
+        >
+        <label class="toggle-row"
+          ><span>引力场</span><input
+            id="gravity-setting"
+            type="checkbox"
+            checked
+          /></label
+        >
+      </details>
+      <details>
+        <summary>星系 <span>UNIVERSE</span></summary>
+        <p id="current-system"></p>
+        <p>新旅程会替换当前飞行存档。</p>
+        <form id="seed-form" class="seed-form">
+          <label for="seed-input">星系种子</label>
+          <div>
+            <input
+              id="seed-input"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]{1,10}"
+              maxlength="10"
+              required
+            /><button type="submit">出发 ↗</button>
+          </div>
+        </form>
+        <div class="universe-actions">
+          <button id="daily-system">今日星系</button><button id="random-system"
+            >随机星系</button
+          >
+        </div>
+      </details>
+      <div class="menu-footer">
+        <span id="save-state">进度保存在当前浏览器</span><a
+          href="/?game=landroid-extended">返回游戏库 ↗</a
+        >
+      </div>
+      <p class="credits">
+        Based on <a
+          href="https://android.googlesource.com/platform/frameworks/base/+/android17-release/packages/EasterEgg/src/com/android/egg/landroid/"
+          target="_blank"
+          rel="noreferrer">AOSP Landroid</a
+        > · <a href="/licenses/landroid-extended.txt" target="_blank"
+          >Apache 2.0</a
+        >
+      </p>
+    </dialog>
+    <FlightDialogs />
+    <noscript
+      ><p class="failure">
+        开启 JavaScript 后即可驾驶飞船。<a href="/">返回游戏库</a>
+      </p></noscript
+    >
+    <script>
+      import { startGame } from '../../games/landroid-extended/client';
+      startGame();
+    </script>
+  </body>
+</html>

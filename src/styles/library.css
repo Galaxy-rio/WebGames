@@ -19,11 +19,39 @@
   overflow: hidden;
   pointer-events: none;
 }
-.library-backdrop > img {
+html[data-reduced-motion='false']
+  body.library-page[data-transitions-ready='true'] {
+  transition: var(--theme-transition) !important;
+}
+.backdrop-layer {
+  position: absolute;
+  inset: 0;
+  background: var(--library-background);
+}
+.backdrop-layer > img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  animation: reveal-bg 1s ease-out both;
+}
+.backdrop-ripple {
+  -webkit-mask-image: radial-gradient(
+    circle at var(--reveal-x) var(--reveal-y),
+    #000 max(0px, calc(var(--reveal-radius) - var(--reveal-feather))),
+    #000d max(0px, calc(var(--reveal-radius) - var(--reveal-feather) * 0.5)),
+    #0006 var(--reveal-radius),
+    #0001 calc(var(--reveal-radius) + var(--reveal-feather) * 0.6),
+    transparent calc(var(--reveal-radius) + var(--reveal-feather))
+  );
+  mask-image: radial-gradient(
+    circle at var(--reveal-x) var(--reveal-y),
+    #000 max(0px, calc(var(--reveal-radius) - var(--reveal-feather))),
+    #000d max(0px, calc(var(--reveal-radius) - var(--reveal-feather) * 0.5)),
+    #0006 var(--reveal-radius),
+    #0001 calc(var(--reveal-radius) + var(--reveal-feather) * 0.6),
+    transparent calc(var(--reveal-radius) + var(--reveal-feather))
+  );
+  will-change: mask-image;
 }
 .backdrop-shade {
   position: absolute;
@@ -122,6 +150,11 @@
     transparent;
 }
 .game-tile {
+  --tile-transition:
+    width 0.3s cubic-bezier(0.2, 0.75, 0.2, 1),
+    height 0.3s cubic-bezier(0.2, 0.75, 0.2, 1),
+    border-radius 0.3s cubic-bezier(0.2, 0.75, 0.2, 1),
+    transform 0.3s cubic-bezier(0.2, 0.75, 0.2, 1), box-shadow 0.3s ease;
   position: relative;
   width: 96px;
   height: 96px;
@@ -131,11 +164,12 @@
   margin: 0 3px;
   box-shadow: 0 10px 25px var(--ui-shadow);
   isolation: isolate;
-  transition: transform 0.22s ease;
+  transition: var(--tile-transition);
 }
 .game-tile.selected {
   width: 128px;
   height: 128px;
+  border-radius: 24px;
 }
 .game-tile::before {
   content: '';
@@ -143,10 +177,22 @@
   inset: -6px;
   border: 2px solid transparent;
   border-radius: 24px;
-  transition: border-color 0.2s;
+  transition:
+    border-color 0.25s,
+    border-radius 0.3s cubic-bezier(0.2, 0.75, 0.2, 1);
 }
 .game-tile.selected::before {
   border-color: var(--ui-selection);
+  border-radius: 30px;
+}
+/* The explicit site preference takes priority over the OS-wide fallback. */
+html[data-reduced-motion='false'] .game-tile {
+  transition: var(--tile-transition) !important;
+}
+html[data-reduced-motion='false'] .game-tile::before {
+  transition:
+    border-color 0.25s,
+    border-radius 0.3s cubic-bezier(0.2, 0.75, 0.2, 1) !important;
 }
 .game-tile > .tile-cover {
   width: 100%;
@@ -199,6 +245,8 @@
   color: var(--ui-text);
 }
 .rail-caption {
+  position: relative;
+  min-height: 25px;
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -206,11 +254,18 @@
   margin-top: 4px;
 }
 .selected-game-name {
+  position: absolute;
+  left: 67px;
+  transform: translateX(-50%);
+  width: max-content;
+  margin: 0;
+  text-align: center;
   font-size: 1.05rem;
   font-weight: 400;
   color: var(--ui-text);
 }
 .collection-count {
+  margin-left: auto;
   flex-shrink: 0;
   font-size: 0.75rem;
   color: var(--ui-muted);
@@ -398,16 +453,6 @@
   font-size: 0.8rem;
   font-weight: 400;
 }
-@keyframes reveal-bg {
-  from {
-    opacity: 0;
-    transform: scale(1.025);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
 @media (min-width: 1800px) {
   .library-shell {
     padding-top: 42px;
@@ -511,9 +556,13 @@
   .game-tile.selected {
     width: 102px;
     height: 102px;
+    border-radius: 21px;
   }
   .game-tile::before {
     border-radius: 21px;
+  }
+  .game-tile.selected::before {
+    border-radius: 27px;
   }
   .library-tile {
     flex-basis: 74px;

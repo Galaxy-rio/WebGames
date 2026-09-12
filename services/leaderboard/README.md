@@ -2,7 +2,7 @@
 
 这是项目独立开发的通用排行榜，使用一个 Cloudflare Worker 和一个 D1 数据库。各游戏自行绘制排行榜界面，后台只提供 JSON API；管理页面与 API 一同部署到 Worker。服务没有 Twikoo 依赖，仅借鉴昵称、可选邮箱与管理面板的使用方式。
 
-已有 Chroma Dash 的准度、速度、盲猜三个榜单。服务不设赛季，也不包含反作弊或逐局服务器验分系统。
+已有 Chroma Dash 的准度、速度、盲猜榜单，以及 Landroid extended 的星系探索榜单。Landroid 提交时额外校验完成条件、AUTO 标记、奖励范围和计分算式。服务不设赛季，也不包含反作弊或逐局服务器回放验真系统。
 
 ## 功能与规则
 
@@ -23,8 +23,11 @@
 | `chroma` | `accuracy` | 准度挑战 | 越大越好 | `954` → `95.4%`        | `0`–`1000`     |
 | `chroma` | `speed`    | 速度挑战 | 越小越好 | `12345` 毫秒 → `12.3s` | `0`–`86400000` |
 | `chroma` | `blind`    | 盲猜模式 | 越大越好 | `921` → `92.1%`        | `0`–`1000`     |
+| `landroid-extended` | `exploration` | 星系探索 | 越大越好 | `59530` → `59530 分` | `−9007199254740991`–`97000` |
 
 速度成绩包含罚时。排序比较完整存储整数，所以两条都显示为 `12.3s` 的成绩，实际毫秒数仍可能不同；只有存储数值完全相同才并列。
+
+Landroid 只接受完成全部星球探索且未启用 AUTO 的整局成绩，分数可为负。新榜单由 `0002_landroid_extended.sql` 注册；已有部署需应用新增迁移并发布更新后的 Worker。具体计分规则见 [游戏说明](../../src/games/landroid-extended/README.md#计分与排行榜)。
 
 ## 本地运行
 
@@ -43,7 +46,7 @@ npm.cmd --prefix services/leaderboard ci
 npm.cmd run leaderboard:setup
 ```
 
-`leaderboard:setup` 会在 `services/leaderboard/.dev.vars` 生成仅用于本地的随机管理员密码和身份密钥，并对本地 D1 执行迁移，建立表与三个默认榜单。首次生成的密码会显示在终端；以后可以在本地 `.dev.vars` 文件中查看。重复执行会保留已有密码、密钥和数据库数据。
+`leaderboard:setup` 会在 `services/leaderboard/.dev.vars` 生成仅用于本地的随机管理员密码和身份密钥，并对本地 D1 执行迁移，建立表与四个默认榜单。首次生成的密码会显示在终端；以后可以在本地 `.dev.vars` 文件中查看。重复执行会保留已有密码、密钥和数据库数据。
 
 这一步使用 Wrangler 的本地数据库，不创建云端数据库，也不需要先发布 Worker。本地 D1 与云端 D1 分开管理。[D1 本地开发说明](https://developers.cloudflare.com/d1/get-started/)
 
@@ -65,6 +68,7 @@ npm.cmd run dev
 | ------------------ | ------------------------------------ |
 | 游戏首页           | `http://127.0.0.1:4322/`             |
 | Chroma Dash        | `http://127.0.0.1:4322/chroma/`      |
+| Landroid extended | `http://127.0.0.1:4322/landroid-extended/` |
 | 排行榜管理         | `http://127.0.0.1:8787/admin/`       |
 | 游戏与榜单配置接口 | `http://127.0.0.1:8787/api/v1/games` |
 
@@ -361,6 +365,8 @@ const result = await client.submit('your-game', 'best-score', {
 ```
 
 示例中的变量由游戏提供；`rounds` 需要事先写进榜单的辅助字段配置。网络超时后保留同一局的提交 ID 和原始数据重试。对显示的昵称等玩家内容使用 `textContent`，网址通过 `safeWebsite()` 检查。
+
+Landroid 的 `exploration` 榜单要求以下辅助字段：`ruleVersion`（1）、`seed`、`planetCount`、`discovered`、`flightSeconds`、`fuelSeconds`（按推力折算的满推力秒数）、`speedBonus`、`angleBonus`、`sequenceBonus`、`impacts`、`completed`（true）、`autopilot`（false）。前端结果转换见 `src/games/landroid-extended/leaderboard.ts`，后端校验见 `src/landroid.ts`。
 
 ### 管理接口
 

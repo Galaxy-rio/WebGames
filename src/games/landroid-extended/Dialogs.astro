@@ -1,0 +1,97 @@
+---
+const apiUrl =
+  import.meta.env.PUBLIC_LEADERBOARD_API?.trim() ||
+  (import.meta.env.DEV ? 'http://127.0.0.1:8787' : '');
+---
+
+<dialog id="auto-confirm" aria-labelledby="auto-title">
+  <h2 id="auto-title">开启自动驾驶？</h2>
+  <p id="auto-warning" class="dialog-copy">
+    开启后，本局将停止计分，无法上传排行榜。恢复手动驾驶也不会重新计分；前往下一个星系可开始新的计分对局。
+  </p>
+  <div class="dialog-actions">
+    <form method="dialog"><button autofocus>继续手动驾驶</button></form><button
+      id="confirm-auto">开启 AUTO</button>
+  </div>
+</dialog>
+
+<dialog id="flight-result" aria-labelledby="result-title">
+  <form method="dialog" class="menu-top">
+    <span>FLIGHT COMPLETE</span><button
+      class="menu-close"
+      aria-label="关闭得分窗口">×</button>
+  </form>
+  <h2 id="result-title">星系探索完成</h2>
+  <p id="result-system" class="dialog-copy"></p>
+  <output id="result-score" class="result-score" aria-label="最终得分"></output>
+  <p id="result-note" class="dialog-copy"></p>
+  <dl id="score-breakdown" class="score-breakdown"></dl>
+  <form id="score-submit-form" class="score-form">
+    <label
+      >昵称 <input
+        id="score-nickname"
+        name="nickname"
+        autocomplete="nickname"
+        maxlength="32"
+        required
+      /></label
+    >
+    <div class="optional-fields">
+      <label
+        >邮箱（选填）<input
+          id="score-email"
+          name="email"
+          type="email"
+          autocomplete="email"
+          maxlength="254"
+        /></label
+      >
+      <label
+        >网址（选填）<input
+          id="score-website"
+          name="website"
+          type="url"
+          autocomplete="url"
+          placeholder="https://"
+          maxlength="500"
+        /></label
+      >
+    </div>
+    <p class="identity-note">邮箱用于匹配已有昵称，不会公开显示。</p>
+    <label class="remember-profile"
+      ><input
+        id="score-remember"
+        type="checkbox"
+      />在此浏览器记住填写信息</label
+    >
+    <button id="submit-score" class="resume-button" type="submit"
+      >上传分数</button
+    >
+    <p id="submit-status" class="dialog-copy" role="status"></p>
+  </form>
+  <button id="next-system" class="resume-button"
+    >前往下一个星系 <span>↗</span></button
+  >
+  <button id="result-leaderboard" class="wide-action">查看排行榜</button>
+</dialog>
+
+<dialog
+  id="flight-leaderboard"
+  data-api-url={apiUrl}
+  aria-labelledby="board-title"
+>
+  <form method="dialog" class="menu-top">
+    <span>LANDROID extended</span><button
+      class="menu-close"
+      aria-label="关闭排行榜">×</button>
+  </form>
+  <h2 id="board-title">星系探索排行榜</h2>
+  <p class="dialog-copy">每人保留最高得分</p>
+  <p id="board-status" class="dialog-copy" role="status"></p>
+  <ol id="board-entries" class="board-entries"></ol>
+  <div class="board-pagination">
+    <button id="board-prev">上一页</button><span id="board-page"></span><button
+      id="board-next">下一页</button>
+  </div>
+  <button id="board-refresh" class="wide-action">刷新排行榜</button>
+</dialog>

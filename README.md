@@ -1,6 +1,6 @@
 # galaxyrio · 游乐场
 
-独立的 Astro 静态网页游戏项目。主页面采用主机游戏库布局，第一款游戏是 **Chroma Dash**。项目另含独立的 Cloudflare Workers + D1 排行榜服务和管理页面，各游戏共用 API、自行控制排行榜界面。
+独立的 Astro 静态网页游戏项目。主页面采用主机游戏库布局，目前包括 **Chroma Dash** 和 **Landroid extended**。项目另含独立的 Cloudflare Workers + D1 排行榜服务和管理页面，各游戏共用 API、自行控制排行榜界面。
 
 ## 本地运行
 
@@ -15,6 +15,7 @@ npm.cmd run dev
 
 - 游戏库：`/`
 - Chroma Dash：`/chroma/`
+- Landroid extended：`/landroid-extended/`
 - 指定玩法：`/chroma/?mode=accuracy`、`speed`、`blind`
 
 Astro 7 开发服务在后台运行，可以用 `npx.cmd astro dev status` 查看，`npx.cmd astro dev stop` 停止。
@@ -30,7 +31,7 @@ npm.cmd run build
 
 ## 在线排行榜
 
-已接入准度挑战、速度挑战、盲猜模式三张榜单。完成一局后可填写昵称提交，邮箱和网址选填；填写邮箱后，使用这个昵称需要匹配同一邮箱。每位玩家在每张榜单保留最佳成绩。
+已接入 Chroma Dash 的准度挑战、速度挑战、盲猜模式，以及 Landroid extended 的星系探索榜单。完成一局后可填写昵称提交，邮箱和网址选填；填写邮箱后，使用这个昵称需要匹配同一邮箱。每位玩家在每张榜单保留最佳成绩。
 
 首次本地准备，在项目根目录执行：
 
@@ -47,6 +48,10 @@ npm.cmd run leaderboard:dev
 线上需要单独部署排行榜 Worker，并在 Pages 设置 `PUBLIC_LEADERBOARD_API` 后重新构建。完整功能说明、本地运行、Cloudflare Workers + D1 逐步部署和 API 接入方式见 [排行榜服务 README](services/leaderboard/README.md)。
 
 ## 玩法
+
+**Landroid extended** 移植 Android 17 Landroid 太空彩蛋，保留 Android 14–17 的探索飞行玩法与原版矢量画风。使用鼠标或单指拖动推进，松手惯性滑行，船头朝外着陆；支持屏幕边缘星球指引和本地存档，保留原版镜头。每个新星系从 5000 分开始，首次探索和着陆质量加分，燃料、飞行时间和船头撞击扣分。探索完全部星球后结算，可上传排行榜或前往随机新星系。开启 AUTO 需确认，并停止本局计分。完整规则、实现依据和扩展入口见 [太空游戏说明](src/games/landroid-extended/README.md)。
+
+下文为 Chroma Dash 的规则。
 
 每局 10 关。准度挑战每关 30 秒，到时自动提交当前有效颜色；查看答案时暂停，点击下一关重新计时。最终成绩为十关平均准确率，保留一位小数，越高越好。
 
@@ -120,6 +125,8 @@ ui: {
 | `shadow`                    | 公共柔和阴影的颜色                |
 
 所有项目均可省略，按 `theme` 回退到默认配色。服务端首次渲染和浏览器切换游戏使用同一个解析器 `src/lib/library-theme.ts`，每次完整更新配色，避免上一款游戏的颜色残留。
+
+游戏切换时，图标尺寸与圆角连续过渡，图标下的标题随当前图标保持居中；新背景连同自身遮罩从选中图标背后以柔边圆形展开。Logo、简介、标签与成绩淡入淡出，其余控件颜色平滑过渡。快速连续切换会保留前一帧已显示的背景，最新选择展开完成后清理旧图层。遵循站内“减少动态效果”设置，尚未读取站内设置时回退到系统偏好。
 
 ## 部署
 

@@ -15,15 +15,16 @@ const collectionCount = String(games.length).padStart(2, '0');
   bodyStyle={theme.variables}
   themeColor={theme.background}
 >
-  <div class="library-backdrop" aria-hidden="true">
-    <img
-      id="library-background"
-      src={game.background}
-      style={{ objectPosition: game.backgroundPosition ?? 'center' }}
-      alt=""
-      fetchpriority="high"
-    />
-    <div class="backdrop-shade"></div>
+  <div id="library-backdrop" class="library-backdrop" aria-hidden="true">
+    <div class="backdrop-layer" style={theme.variables} data-game={game.id}>
+      <img
+        src={game.background}
+        style={{ objectPosition: game.backgroundPosition ?? 'center' }}
+        alt=""
+        fetchpriority="high"
+      />
+      <div class="backdrop-shade"></div>
+    </div>
   </div>
   <div class="library-shell">
     <header class="console-header">
