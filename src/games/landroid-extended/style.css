@@ -321,6 +321,27 @@ dialog h2 {
   padding: 9px;
   font-size: 10px;
 }
+.board-bottom {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+.board-bottom .wide-action {
+  flex: 1;
+  margin-top: 0;
+}
+.board-admin {
+  display: grid;
+  place-items: center;
+  flex: 0 0 36px;
+  height: 40px;
+  color: var(--muted);
+}
+.board-admin:hover {
+  color: var(--console);
+  background: #b7b7ff0c;
+}
 @media (max-width: 390px) {
   .flight-heading {
     gap: 10px;

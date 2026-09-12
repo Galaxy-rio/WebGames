@@ -85,6 +85,19 @@ git push -u origin main
 
 打开正式游戏，完成一局后填写昵称提交成绩，再到 [排行榜管理页面](https://leaderboard.galaxyrio.top/admin/) 登录，确认能找到并删除测试记录。线上 D1 和本地测试数据库互不混用。
 
+### 已有排行榜服务，新增 Landroid 游戏
+
+如果提交时报“没有找到这个排行榜”，说明前端已收到排行榜服务的响应，应检查云端是否已注册新榜单。可查看 `https://leaderboard.galaxyrio.top/api/v1/games`：需要包含游戏 `landroid-extended` 及其 `exploration` 榜单。
+
+在项目根目录执行以下命令，应用 `0002_landroid_extended.sql` 并发布本次新增的服务端计分校验：
+
+```powershell
+npm.cmd --prefix services/leaderboard run db:migrate:remote
+npm.cmd --prefix services/leaderboard run deploy
+```
+
+然后重新上传前端修改并等待 Pages 构建完成。Pages 的 Git 部署只发布游戏网页，新增云端榜单需要上述 D1 迁移；已经正确配置的 `PUBLIC_LEADERBOARD_API` 无需重复修改。
+
 ## 6. 以后更新
 
 修改完成后，在项目文件夹中执行：

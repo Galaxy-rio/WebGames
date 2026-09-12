@@ -50,6 +50,11 @@ export class FlightLeaderboard {
   private returnTo: HTMLDialogElement | null = null;
 
   constructor(onNext: () => void) {
+    const admin = el<HTMLAnchorElement>('board-admin');
+    if (this.client.configured) {
+      admin.href = this.client.baseUrl + '/admin/';
+      admin.hidden = false;
+    }
     try {
       const guest = localStorage.getItem('galaxyrio.leaderboard.guest.v1');
       if (guest && /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(guest))

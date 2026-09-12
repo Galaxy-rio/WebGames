@@ -17,6 +17,7 @@ export interface ChallengeData {
   id: string;
   eligible: boolean;
   legacy: boolean;
+  started: boolean;
   visited: number[];
   flightSeconds: number;
   fuelSeconds: number;
@@ -48,6 +49,7 @@ export class Challenge {
       id: crypto.randomUUID(),
       eligible: true,
       legacy: false,
+      started: false,
       visited: [],
       flightSeconds: 0,
       fuelSeconds: 0,
@@ -85,9 +87,13 @@ export class Challenge {
     );
   }
   private scoredDiscoveries = 0;
+  start(): void {
+    this.data.started = true;
+  }
   advance(dt: number, thrust: number, airborne: boolean): void {
     if (
       !this.eligible ||
+      !this.data.started ||
       this.finished ||
       !airborne ||
       !Number.isFinite(dt) ||
@@ -147,6 +153,7 @@ export class Challenge {
       ) ||
       typeof s.eligible !== 'boolean' ||
       typeof s.legacy !== 'boolean' ||
+      (s.started !== undefined && typeof s.started !== 'boolean') ||
       !Array.isArray(s.visited) ||
       s.visited.length > this.planetCount ||
       new Set(s.visited).size !== s.visited.length ||
@@ -159,6 +166,7 @@ export class Challenge {
       s.flightSeconds > time + 1e-6 ||
       !nonnegative(s.fuelSeconds) ||
       s.fuelSeconds > s.flightSeconds + 1e-6 ||
+      (s.started === false && (s.flightSeconds > 0 || s.fuelSeconds > 0)) ||
       !Number.isInteger(s.scoredDiscoveries) ||
       s.scoredDiscoveries < 0 ||
       s.scoredDiscoveries > s.visited.length ||
@@ -180,13 +188,16 @@ export class Challenge {
           !s.visited.every((id, i) => id === i)))
     )
       return false;
-    this.data = { ...s, visited: [...s.visited] };
+    // Earlier saves had already been timing from page load; keep those costs
+    // and keep their clock running instead of giving resumed runs a free pause.
+    this.data = { ...s, started: s.started ?? true, visited: [...s.visited] };
     this.scoredDiscoveries = s.scoredDiscoveries;
     return true;
   }
   importLegacy(explored: number[], time: number): void {
     this.data.eligible = false;
     this.data.legacy = true;
+    this.data.started = true;
     this.data.visited = [...explored];
     if (explored.length === this.planetCount) this.data.completedAt = time;
   }

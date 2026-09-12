@@ -1,4 +1,5 @@
 ---
+import Icon from '../../components/Icon.astro';
 const apiUrl =
   import.meta.env.PUBLIC_LEADERBOARD_API?.trim() ||
   (import.meta.env.DEV ? 'http://127.0.0.1:8787' : '');
@@ -11,7 +12,8 @@ const apiUrl =
   </p>
   <div class="dialog-actions">
     <form method="dialog"><button autofocus>继续手动驾驶</button></form><button
-      id="confirm-auto">开启 AUTO</button>
+      id="confirm-auto">开启 AUTO</button
+    >
   </div>
 </dialog>
 
@@ -19,7 +21,8 @@ const apiUrl =
   <form method="dialog" class="menu-top">
     <span>FLIGHT COMPLETE</span><button
       class="menu-close"
-      aria-label="关闭得分窗口">×</button>
+      aria-label="关闭得分窗口">×</button
+    >
   </form>
   <h2 id="result-title">星系探索完成</h2>
   <p id="result-system" class="dialog-copy"></p>
@@ -83,7 +86,8 @@ const apiUrl =
   <form method="dialog" class="menu-top">
     <span>LANDROID extended</span><button
       class="menu-close"
-      aria-label="关闭排行榜">×</button>
+      aria-label="关闭排行榜">×</button
+    >
   </form>
   <h2 id="board-title">星系探索排行榜</h2>
   <p class="dialog-copy">每人保留最高得分</p>
@@ -91,7 +95,19 @@ const apiUrl =
   <ol id="board-entries" class="board-entries"></ol>
   <div class="board-pagination">
     <button id="board-prev">上一页</button><span id="board-page"></span><button
-      id="board-next">下一页</button>
+      id="board-next">下一页</button
+    >
   </div>
-  <button id="board-refresh" class="wide-action">刷新排行榜</button>
+  <div class="board-bottom">
+    <button id="board-refresh" class="wide-action">刷新排行榜</button>
+    <a
+      id="board-admin"
+      class="board-admin"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="排行榜管理"
+      title="排行榜管理"
+      hidden><Icon name="settings" size={16} /></a
+    >
+  </div>
 </dialog>

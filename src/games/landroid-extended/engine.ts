@@ -239,6 +239,7 @@ export class Universe {
     return result;
   }
   manual(heading?: number, thrust = 0): void {
+    this.challenge.start();
     if (this.autopilot.enabled) this.autopilot.setEnabled(false);
     if (heading !== undefined && !this.ship.landing) this.ship.angle = heading;
     this.ship.thrust = clamp(thrust, 0, 1);

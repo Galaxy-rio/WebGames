@@ -29,6 +29,7 @@ test('new flights start with 5000 and fractional travel/fuel costs are independe
   for (const fps of [30, 60, 120]) {
     const c = new Challenge(6);
     assert.equal(c.score, 5000);
+    c.start();
     for (let frame = 0; frame < fps * 10; frame++)
       c.advance(1 / fps, 0.5, true);
     assert.equal(c.score, 4400);
@@ -38,6 +39,7 @@ test('new flights start with 5000 and fractional travel/fuel costs are independe
     assert.equal(c.score, 4400);
   }
   const c = new Challenge(6);
+  c.start();
   for (let i = 0; i < 120; i++) c.advance(1 / 120, 1, true);
   assert.equal(c.score, 4890);
   for (let i = 0; i < 120; i++) c.advance(1 / 120, 0, true);
@@ -46,6 +48,49 @@ test('new flights start with 5000 and fractional travel/fuel costs are independe
   c.advance(-1, 1, true);
   c.advance(50, 1, true);
   assert.equal(c.score, 4880);
+});
+
+test('new flights do not charge waiting time until the first manual input, then coasting keeps the clock running', () => {
+  const u = new Universe(20260324);
+  for (let i = 0; i < 120 * 30; i++) u.step(RULES.fixedStep);
+  assert.equal(u.challenge.score, 5000);
+  assert.equal(u.challenge.data.flightSeconds, 0);
+  assert.equal(u.challenge.data.fuelSeconds, 0);
+  const waiting = restore(snapshot(u))!;
+  assert.ok(waiting);
+  assert.equal(waiting.challenge.data.started, false);
+  for (let i = 0; i < 120 * 10; i++) waiting.step(RULES.fixedStep);
+  assert.equal(waiting.challenge.score, 5000);
+  waiting.manual(undefined, 0);
+  for (let i = 0; i < 120; i++) waiting.step(RULES.fixedStep);
+  assert.equal(waiting.challenge.data.started, true);
+  assert.equal(waiting.challenge.score, 4990);
+  assert.equal(waiting.challenge.data.fuelSeconds, 0);
+  const active = restore(snapshot(waiting))!;
+  assert.ok(active);
+  for (let i = 0; i < 120; i++) active.step(RULES.fixedStep);
+  assert.equal(active.challenge.score, 4980);
+  assert.equal(new Universe(17).challenge.data.started, false);
+});
+
+test('older saves keep their running clock, and malformed start flags cannot bypass recorded costs', () => {
+  const u = new Universe(20260324);
+  u.manual(undefined, 0);
+  for (let i = 0; i < 120; i++) u.step(RULES.fixedStep);
+  const saved = snapshot(u);
+  const old = JSON.parse(JSON.stringify(saved));
+  delete old.challenge.started;
+  const restored = restore(old)!;
+  assert.ok(restored);
+  assert.equal(restored.challenge.data.started, true);
+  assert.equal(restored.challenge.score, 4990);
+  for (let i = 0; i < 120; i++) restored.step(RULES.fixedStep);
+  assert.equal(restored.challenge.score, 4980);
+  for (const started of [false, 'false', null])
+    assert.equal(
+      restore({ ...saved, challenge: { ...saved.challenge, started } }),
+      null,
+    );
 });
 
 test('first landing scores relative speed and cosine error; repeat landings cannot farm any bonus', () => {
@@ -151,6 +196,7 @@ test('physics reports landing speed and angle before snapping ship velocity and 
 
 test('costs allow negative integer scores and on-planet dwell costs nothing', () => {
   const c = new Challenge(6);
+  c.start();
   for (let i = 0; i < 120 * 50; i++) c.advance(1 / 120, 1, true);
   assert.equal(c.score, -500);
   for (let i = 0; i < 120 * 60; i++) c.advance(1 / 120, 1, false);
